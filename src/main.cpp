@@ -3,13 +3,23 @@
 // If you are new to Dear ImGui, read documentation from the docs/ folder + read the top of imgui.cpp.
 // Read online: https://github.com/ocornut/imgui/tree/master/docs
 
-// system lib
+// system header
 #include <stdio.h>
-// imgui lib
+// imgui header
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+// user header
+#include "gl_manager.h"
+#include <map>
+#include <string>
 
+#include <iostream>
+#include <fstream>
+#include <stdlib.h>
+#include <memory>
+
+using namespace std;
 #if defined(IMGUI_IMPL_OPENGL_ES2)
 #include <GLES2/gl2.h>
 // About Desktop OpenGL function loaders:
@@ -60,28 +70,12 @@ int main(int, char **)
     if (!glfwInit())
         return 1;
 
-        // Decide GL+GLSL versions
-#if defined(IMGUI_IMPL_OPENGL_ES2)
-    // GL ES 2.0 + GLSL 100
-    const char *glsl_version = "#version 100";
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
-#elif defined(__APPLE__)
-    // GL 3.2 + GLSL 150
-    const char *glsl_version = "#version 150";
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // 3.2+ only
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);           // Required on Mac
-#else
     // GL 3.0 + GLSL 130
     const char *glsl_version = "#version 130";
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
     //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
     //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
-#endif
 
     // Create window with graphics context
     GLFWwindow *window = glfwCreateWindow(1280, 720, "Dear ImGui GLFW+OpenGL3 example", NULL, NULL);
@@ -91,24 +85,7 @@ int main(int, char **)
     glfwSwapInterval(1); // Enable vsync
 
     // Initialize OpenGL loader
-#if defined(IMGUI_IMPL_OPENGL_LOADER_GL3W)
     bool err = gl3wInit() != 0;
-#elif defined(IMGUI_IMPL_OPENGL_LOADER_GLEW)
-    bool err = glewInit() != GLEW_OK;
-#elif defined(IMGUI_IMPL_OPENGL_LOADER_GLAD)
-    bool err = gladLoadGL() == 0;
-#elif defined(IMGUI_IMPL_OPENGL_LOADER_GLAD2)
-    bool err = gladLoadGL(glfwGetProcAddress) == 0; // glad2 recommend using the windowing library loader instead of the (optionally) bundled one.
-#elif defined(IMGUI_IMPL_OPENGL_LOADER_GLBINDING2)
-    bool err = false;
-    glbinding::Binding::initialize();
-#elif defined(IMGUI_IMPL_OPENGL_LOADER_GLBINDING3)
-    bool err = false;
-    glbinding::initialize([](const char *name)
-                          { return (glbinding::ProcAddress)glfwGetProcAddress(name); });
-#else
-    bool err = false; // If you use IMGUI_IMPL_OPENGL_LOADER_CUSTOM, your loader is likely to requires some form of initialization.
-#endif
     if (err)
     {
         fprintf(stderr, "Failed to initialize OpenGL loader!\n");
@@ -146,10 +123,200 @@ int main(int, char **)
     //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
     //IM_ASSERT(font != NULL);
 
+    const char vShaderStr[] =
+        "attribute vec4 vPosition;    \n"
+        "void main()                  \n"
+        "{                            \n"
+        "   gl_Position = vPosition;  \n"
+        "}                            \n";
+
+    const char fShaderStr[] =
+        "precision mediump float;\n"
+        "void main()                                  \n"
+        "{                                            \n"
+        "  gl_FragColor = vec4 ( 1.0, 0.0, 0.0, 1.0 );\n"
+        "}                                            \n";
     // Our state
     bool show_demo_window = true;
     bool show_another_window = false;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+
+#define MY_GL_CODE
+
+#ifdef MY_GL_CODE
+    //init GLSL Program
+    GLShader *my_gl = new GLShader(vShaderStr, fShaderStr);
+
+    //set vertex Attribute vPosition
+    my_gl->SetGLAttribLocation(GL_VERTEX_SHADER, "vPosition");
+
+//	GLint tmp_loc = glGetAttribLocation(my_gl->program, "vPosition");
+
+    
+	GL3DObj model = { 0 };
+    std::cout << "Hello World!\n";
+	string path = "D:/github/3d-mimic/resource/cube.obj";
+	std::ifstream obj_file(path, std::ios::in);
+	string obj_src;
+
+	if (obj_file.is_open())
+	{
+		string cur_line;
+
+		while (getline(obj_file, cur_line))
+		{
+
+			string type = cur_line.substr(0, 2);
+
+			// 6
+			if (type.compare("v ") == 0)
+				model.positions++;
+			else if (type.compare("vt") == 0)
+				model.texels++;
+			else if (type.compare("vn") == 0)
+				model.normals++;
+			else if (type.compare("f ") == 0)
+				model.faces++;
+
+			obj_src += "\n" + cur_line;
+		}
+		obj_file.close();
+	}
+
+    model.obj_positions = (float **)malloc(sizeof(float *) * model.positions);
+    for(int i = 0; i < model.positions; i++)
+    {
+        model.obj_positions[i] = (float *)malloc(sizeof(float) * 3);
+    }
+
+    model.obj_texels = (float **)malloc(sizeof(float *) * model.texels);
+    for(int i = 0; i < model.texels; i++)
+    {
+        model.obj_texels[i] = (float *)malloc(sizeof(float) * 2);
+    }
+
+    model.obj_normals = (float **)malloc(sizeof(float *) * model.normals);
+    for(int i = 0; i < model.normals; i++)
+    {
+        model.obj_normals[i] = (float *)malloc(sizeof(float) * 3);
+    }
+
+    model.obj_faces = (float **)malloc(sizeof(float *) * model.faces);
+    for(int i = 0; i < model.faces; i++)
+    {
+        model.obj_faces[i] = (float *)malloc(sizeof(float) * 12);
+    }
+
+
+    // Counters
+    int p = 0;
+    int t = 0;
+    int n = 0;
+    int fn = 0;
+
+    obj_file.open(path);
+	if (obj_file.is_open())
+	{
+		string cur_line;
+
+		while (getline(obj_file, cur_line))
+		{
+
+			string type = cur_line.substr(0, 2);
+
+			// 6
+			if (type.compare("v ") == 0)
+            {
+                // 1
+                // Copy line for parsing
+                char *l = new char[cur_line.size() + 1];
+                memcpy(l, cur_line.c_str(), cur_line.size() + 1);
+
+                // 2
+                // Extract tokens
+                std::strtok(l, " ");
+                for (int i = 0; i < 3; i++)
+                    model.obj_positions[p][i] = atof(std::strtok(NULL, " "));
+
+                // 3
+                // Wrap up
+                delete[] l;
+                p++;
+            }
+            else if (type.compare("vt") == 0)
+            {
+                char *l = new char[cur_line.size() + 1];
+                memcpy(l, cur_line.c_str(), cur_line.size() + 1);
+
+                std::strtok(l, " ");
+                for (int i = 0; i < 2; i++)
+                    model.obj_texels[t][i] = atof(std::strtok(NULL, " "));
+
+                delete[] l;
+                t++;
+            }
+            else if (type.compare("vn") == 0)
+            {
+                char *l = new char[cur_line.size() + 1];
+                memcpy(l, cur_line.c_str(), cur_line.size() + 1);
+
+                std::strtok(l, " ");
+                for (int i = 0; i < 3; i++)
+                    model.obj_normals[n][i] = std::atof(std::strtok(NULL, " "));
+
+                delete[] l;
+                n++;
+            }
+            else if (type.compare("f ") == 0)
+            {
+                char *l = new char[cur_line.size() + 1];
+                memcpy(l, cur_line.c_str(), cur_line.size() + 1);
+
+                std::strtok(l, " ");
+                for (int i = 0; i < 12; i++)
+                    model.obj_faces[fn][i] = atof(std::strtok(NULL, " /"));
+
+                delete[] l;
+                fn++;
+            }
+        }
+        obj_file.close();
+	}
+
+    GLfloat *out_obj = new GLfloat[model.faces * 6 * 3];
+    //vector<GLfloat> out_obj;
+    //out_obj.resize(model.faces * 6 * 3);
+
+    for(int i=0; i< model.faces; i++)
+    {
+        // 3
+        int vA = model.obj_faces[i][0] - 1;
+        int vB = model.obj_faces[i][3] - 1;
+        int vC = model.obj_faces[i][6] - 1;
+        int vD = model.obj_faces[i][9] - 1;
+
+        out_obj[(i*18) + 0] = model.obj_positions[vA][0];
+        out_obj[(i*18) + 1] = model.obj_positions[vA][1];
+        out_obj[(i*18) + 2] = model.obj_positions[vA][2];
+        out_obj[(i*18) + 3] = model.obj_positions[vB][0];
+        out_obj[(i*18) + 4] = model.obj_positions[vB][1];
+        out_obj[(i*18) + 5] = model.obj_positions[vB][2];
+        out_obj[(i*18) + 6] = model.obj_positions[vC][0];
+        out_obj[(i*18) + 7] = model.obj_positions[vC][1];
+        out_obj[(i*18) + 8] = model.obj_positions[vC][2];
+        out_obj[(i*18) + 9] = model.obj_positions[vA][0];
+        out_obj[(i*18) + 10] = model.obj_positions[vA][1];
+        out_obj[(i*18) + 11] = model.obj_positions[vA][2];
+        out_obj[(i*18) + 12] = model.obj_positions[vB][0];
+        out_obj[(i*18) + 13] = model.obj_positions[vB][1];
+        out_obj[(i*18) + 14] = model.obj_positions[vB][2];
+        out_obj[(i*18) + 15] = model.obj_positions[vD][0];
+        out_obj[(i*18) + 16] = model.obj_positions[vD][1];
+        out_obj[(i*18) + 17] = model.obj_positions[vD][2];
+    }
+#endif
+    static float f = 0.0f;
+    static int counter = 0;
 
     // Main loop
     while (!glfwWindowShouldClose(window))
@@ -166,14 +333,8 @@ int main(int, char **)
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-        if (show_demo_window)
-            ImGui::ShowDemoWindow(&show_demo_window);
-
         // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
         {
-            static float f = 0.0f;
-            static int counter = 0;
 
             ImGui::Begin("Hello, world!"); // Create a window called "Hello, world!" and append into it.
 
@@ -208,13 +369,38 @@ int main(int, char **)
         int display_w, display_h;
         glfwGetFramebufferSize(window, &display_w, &display_h);
         glViewport(0, 0, display_w, display_h);
+
+
+#ifdef MY_GL_CODE
+
         glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
         glClear(GL_COLOR_BUFFER_BIT);
+        
+
+        GLfloat vVertices[] = {
+            0.0f, 0.5f, 0.0f,
+            -0.5f, -0.5f, 0.0f,
+            0.5f, -0.5f, 0.0f};
+
+	    glUseProgram ( my_gl->program );
+
+        // you must use []. not .at()
+        // see more https://gpgstudy.com/forum/viewtopic.php?t=25224
+        // char * 대해 at 동작이 가능하도록 수정할 것
+        //glEnableVertexAttribArray(my_gl->vert_member["vPosition"]);
+        //glVertexAttribPointer(my_gl->vert_member["vPosition"], 3, GL_FLOAT, GL_FALSE, 0, vVertices);
+        glEnableVertexAttribArray(my_gl->vert_member.at("vPosition"));
+        glVertexAttribPointer(my_gl->vert_member.at("vPosition"), 3, GL_FLOAT, GL_FALSE, 0, out_obj);
+
+
+        glDrawArrays(GL_LINES, 0, 59);
+
+#endif MY_GL_CODE
+
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         glfwSwapBuffers(window);
-    }
-
+    }              
     // Cleanup
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();

@@ -5,6 +5,9 @@ project(3DMIMIC VERSION 0.1.0)
 
 include_directories( #include files
     ${CMAKE_CURRENT_SOURCE_DIR}/include/
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/common
+
+    #glfw lib
     ${CMAKE_CURRENT_SOURCE_DIR}/include/gl3w/
     ${CMAKE_CURRENT_SOURCE_DIR}/include/glfw/include/
     ${CMAKE_CURRENT_SOURCE_DIR}/include/usyner
@@ -14,9 +17,10 @@ include_directories( #include files
 ) 
 
 set( SOURCE # project source files
-
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/gl_manager.cpp
 )
 set( HEADER # include header source files
+    #glfw - imgui source
     ${CMAKE_CURRENT_SOURCE_DIR}/include/gl3w/GL/gl3w
     ${CMAKE_CURRENT_SOURCE_DIR}/include/imgui/imgui.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/include/imgui/imgui_demo.cpp
