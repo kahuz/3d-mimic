@@ -19,6 +19,8 @@
 #include <stdlib.h>
 #include <memory>
 
+#include "Logger.h"
+#include <cmath>
 using namespace std;
 #if defined(IMGUI_IMPL_OPENGL_ES2)
 #include <GLES2/gl2.h>
@@ -51,6 +53,8 @@ using namespace gl;
 // Include glfw3.h after our OpenGL definitions
 #include <GLFW/glfw3.h>
 
+#include <nfd.h>
+#include "linmath.h"
 // [Win32] Our example includes a copy of glfw3.lib pre-compiled with VS2010 to maximize ease of testing and compatibility with old VS compilers.
 // To link with VS2010-era libraries, VS2015+ requires linking with legacy_stdio_definitions.lib, which we do using this pragma.
 // Your own project should not be affected, as you are likely to link with a newer binary of GLFW that is adequate for your version of Visual Studio.
@@ -61,6 +65,100 @@ using namespace gl;
 static void glfw_error_callback(int error, const char *description)
 {
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
+}
+
+void DrawFileMenuBar()
+{
+    ImGui::MenuItem("(demo menu)", NULL, false, false);
+    if (ImGui::MenuItem("New")) {}
+    if (ImGui::MenuItem("Open", "Ctrl+O")) {}
+    if (ImGui::BeginMenu("Open Recent"))
+    {
+        ImGui::MenuItem("fish_hat.c");
+        ImGui::MenuItem("fish_hat.inl");
+        ImGui::MenuItem("fish_hat.h");
+        if (ImGui::BeginMenu("More.."))
+        {
+            ImGui::MenuItem("Hello");
+            ImGui::MenuItem("Sailor");
+            ImGui::EndMenu();
+        }
+        ImGui::EndMenu();
+    }
+    if (ImGui::MenuItem("Save", "Ctrl+S")) {}
+    if (ImGui::MenuItem("Save As..")) {}
+
+    ImGui::Separator();
+    if (ImGui::BeginMenu("Options"))
+    {
+        static bool enabled = true;
+        ImGui::MenuItem("Enabled", "", &enabled);
+        ImGui::BeginChild("child", ImVec2(0, 60), true);
+        for (int i = 0; i < 10; i++)
+            ImGui::Text("Scrolling Text %d", i);
+        ImGui::EndChild();
+        static float f = 0.5f;
+        static int n = 0;
+        ImGui::SliderFloat("Value", &f, 0.0f, 1.0f);
+        ImGui::InputFloat("Input", &f, 0.1f);
+        ImGui::Combo("Combo", &n, "Yes\0No\0Maybe\0\0");
+        ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("Colors"))
+    {
+        float sz = ImGui::GetTextLineHeight();
+        for (int i = 0; i < ImGuiCol_COUNT; i++)
+        {
+            const char* name = ImGui::GetStyleColorName((ImGuiCol)i);
+            ImVec2 p = ImGui::GetCursorScreenPos();
+            ImGui::GetWindowDrawList()->AddRectFilled(p, ImVec2(p.x + sz, p.y + sz), ImGui::GetColorU32((ImGuiCol)i));
+            ImGui::Dummy(ImVec2(sz, sz));
+            ImGui::SameLine();
+            ImGui::MenuItem(name);
+        }
+        ImGui::EndMenu();
+    }
+
+    // Here we demonstrate appending again to the "Options" menu (which we already created above)
+    // Of course in this demo it is a little bit silly that this function calls BeginMenu("Options") twice.
+    // In a real code-base using it would make senses to use this feature from very different code locations.
+    if (ImGui::BeginMenu("Options")) // <-- Append!
+    {
+        static bool b = true;
+        ImGui::Checkbox("SomeOption", &b);
+        ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("Disabled", false)) // Disabled
+    {
+        IM_ASSERT(0);
+    }
+    if (ImGui::MenuItem("Checked", NULL, true)) {}
+    if (ImGui::MenuItem("Quit", "Alt+F4")) {}
+
+}
+void DrawMenuBar()
+{
+    if (ImGui::BeginMainMenuBar())
+    {
+        if (ImGui::BeginMenu("File"))
+        {
+            DrawFileMenuBar();
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Edit"))
+        {
+            if (ImGui::MenuItem("Undo", "CTRL+Z")) {}
+            if (ImGui::MenuItem("Redo", "CTRL+Y", false, false)) {}  // Disabled item
+            ImGui::Separator();
+            if (ImGui::MenuItem("Cut", "CTRL+X")) {}
+            if (ImGui::MenuItem("Copy", "CTRL+C")) {}
+            if (ImGui::MenuItem("Paste", "CTRL+V")) {}
+            ImGui::EndMenu();
+        }
+        ImGui::EndMainMenuBar();
+    }
 }
 
 int main(int, char **)
@@ -78,7 +176,7 @@ int main(int, char **)
     //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
 
     // Create window with graphics context
-    GLFWwindow *window = glfwCreateWindow(1280, 720, "Dear ImGui GLFW+OpenGL3 example", NULL, NULL);
+    GLFWwindow *window = glfwCreateWindow(640, 640, "Dear ImGui GLFW+OpenGL3 example", NULL, NULL);
     if (window == NULL)
         return 1;
     glfwMakeContextCurrent(window);
@@ -124,13 +222,18 @@ int main(int, char **)
     //IM_ASSERT(font != NULL);
 
     const char vShaderStr[] =
+        "#version 130 \n"
         "attribute vec4 vPosition;    \n"
+        "uniform mat4 uProjection;    \n"
+        "uniform mat4 uTransform;    \n"
         "void main()                  \n"
         "{                            \n"
-        "   gl_Position = vPosition;  \n"
+        "   gl_Position = uProjection * uTransform * vPosition; \n"
+        //"   gl_Position = vPosition;  \n"
         "}                            \n";
 
     const char fShaderStr[] =
+        "#version 130 \n"
         "precision mediump float;\n"
         "void main()                                  \n"
         "{                                            \n"
@@ -149,171 +252,16 @@ int main(int, char **)
 
     //set vertex Attribute vPosition
     my_gl->SetGLAttribLocation(GL_VERTEX_SHADER, "vPosition");
+    my_gl->SetGLUniformLocation(GL_VERTEX_SHADER, "uProjection");
+    my_gl->SetGLUniformLocation(GL_VERTEX_SHADER, "uTransform");
 
 //	GLint tmp_loc = glGetAttribLocation(my_gl->program, "vPosition");
-
     
-	GL3DObj model = { 0 };
-    std::cout << "Hello World!\n";
-	string path = "D:/github/3d-mimic/resource/cube.obj";
-	std::ifstream obj_file(path, std::ios::in);
-	string obj_src;
+	GL3DObj model;
+	string path = "D:/github/3d-mimic/resource/teapot.obj";
 
-	if (obj_file.is_open())
-	{
-		string cur_line;
+    LoadObjectFile(&model , path);
 
-		while (getline(obj_file, cur_line))
-		{
-
-			string type = cur_line.substr(0, 2);
-
-			// 6
-			if (type.compare("v ") == 0)
-				model.positions++;
-			else if (type.compare("vt") == 0)
-				model.texels++;
-			else if (type.compare("vn") == 0)
-				model.normals++;
-			else if (type.compare("f ") == 0)
-				model.faces++;
-
-			obj_src += "\n" + cur_line;
-		}
-		obj_file.close();
-	}
-
-    model.obj_positions = (float **)malloc(sizeof(float *) * model.positions);
-    for(int i = 0; i < model.positions; i++)
-    {
-        model.obj_positions[i] = (float *)malloc(sizeof(float) * 3);
-    }
-
-    model.obj_texels = (float **)malloc(sizeof(float *) * model.texels);
-    for(int i = 0; i < model.texels; i++)
-    {
-        model.obj_texels[i] = (float *)malloc(sizeof(float) * 2);
-    }
-
-    model.obj_normals = (float **)malloc(sizeof(float *) * model.normals);
-    for(int i = 0; i < model.normals; i++)
-    {
-        model.obj_normals[i] = (float *)malloc(sizeof(float) * 3);
-    }
-
-    model.obj_faces = (float **)malloc(sizeof(float *) * model.faces);
-    for(int i = 0; i < model.faces; i++)
-    {
-        model.obj_faces[i] = (float *)malloc(sizeof(float) * 12);
-    }
-
-
-    // Counters
-    int p = 0;
-    int t = 0;
-    int n = 0;
-    int fn = 0;
-
-    obj_file.open(path);
-	if (obj_file.is_open())
-	{
-		string cur_line;
-
-		while (getline(obj_file, cur_line))
-		{
-
-			string type = cur_line.substr(0, 2);
-
-			// 6
-			if (type.compare("v ") == 0)
-            {
-                // 1
-                // Copy line for parsing
-                char *l = new char[cur_line.size() + 1];
-                memcpy(l, cur_line.c_str(), cur_line.size() + 1);
-
-                // 2
-                // Extract tokens
-                std::strtok(l, " ");
-                for (int i = 0; i < 3; i++)
-                    model.obj_positions[p][i] = atof(std::strtok(NULL, " "));
-
-                // 3
-                // Wrap up
-                delete[] l;
-                p++;
-            }
-            else if (type.compare("vt") == 0)
-            {
-                char *l = new char[cur_line.size() + 1];
-                memcpy(l, cur_line.c_str(), cur_line.size() + 1);
-
-                std::strtok(l, " ");
-                for (int i = 0; i < 2; i++)
-                    model.obj_texels[t][i] = atof(std::strtok(NULL, " "));
-
-                delete[] l;
-                t++;
-            }
-            else if (type.compare("vn") == 0)
-            {
-                char *l = new char[cur_line.size() + 1];
-                memcpy(l, cur_line.c_str(), cur_line.size() + 1);
-
-                std::strtok(l, " ");
-                for (int i = 0; i < 3; i++)
-                    model.obj_normals[n][i] = std::atof(std::strtok(NULL, " "));
-
-                delete[] l;
-                n++;
-            }
-            else if (type.compare("f ") == 0)
-            {
-                char *l = new char[cur_line.size() + 1];
-                memcpy(l, cur_line.c_str(), cur_line.size() + 1);
-
-                std::strtok(l, " ");
-                for (int i = 0; i < 12; i++)
-                    model.obj_faces[fn][i] = atof(std::strtok(NULL, " /"));
-
-                delete[] l;
-                fn++;
-            }
-        }
-        obj_file.close();
-	}
-
-    GLfloat *out_obj = new GLfloat[model.faces * 6 * 3];
-    //vector<GLfloat> out_obj;
-    //out_obj.resize(model.faces * 6 * 3);
-
-    for(int i=0; i< model.faces; i++)
-    {
-        // 3
-        int vA = model.obj_faces[i][0] - 1;
-        int vB = model.obj_faces[i][3] - 1;
-        int vC = model.obj_faces[i][6] - 1;
-        int vD = model.obj_faces[i][9] - 1;
-
-        out_obj[(i*18) + 0] = model.obj_positions[vA][0];
-        out_obj[(i*18) + 1] = model.obj_positions[vA][1];
-        out_obj[(i*18) + 2] = model.obj_positions[vA][2];
-        out_obj[(i*18) + 3] = model.obj_positions[vB][0];
-        out_obj[(i*18) + 4] = model.obj_positions[vB][1];
-        out_obj[(i*18) + 5] = model.obj_positions[vB][2];
-        out_obj[(i*18) + 6] = model.obj_positions[vC][0];
-        out_obj[(i*18) + 7] = model.obj_positions[vC][1];
-        out_obj[(i*18) + 8] = model.obj_positions[vC][2];
-        out_obj[(i*18) + 9] = model.obj_positions[vA][0];
-        out_obj[(i*18) + 10] = model.obj_positions[vA][1];
-        out_obj[(i*18) + 11] = model.obj_positions[vA][2];
-        out_obj[(i*18) + 12] = model.obj_positions[vB][0];
-        out_obj[(i*18) + 13] = model.obj_positions[vB][1];
-        out_obj[(i*18) + 14] = model.obj_positions[vB][2];
-        out_obj[(i*18) + 15] = model.obj_positions[vD][0];
-        out_obj[(i*18) + 16] = model.obj_positions[vD][1];
-        out_obj[(i*18) + 17] = model.obj_positions[vD][2];
-    }
 #endif
     static float f = 0.0f;
     static int counter = 0;
@@ -328,14 +276,82 @@ int main(int, char **)
         // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
         glfwPollEvents();
 
+#ifdef MY_GL_CODE
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClearColor(clear_color.x* clear_color.w, clear_color.y* clear_color.w, clear_color.z* clear_color.w, clear_color.w);
+
+        GLfloat vVertices[] = {
+      -0.5f, -0.5f, -0.5f,
+      -0.5f, -0.5f,  0.5f,
+      0.5f, -0.5f,  0.5f,
+      0.5f, -0.5f, -0.5f,
+      -0.5f,  0.5f, -0.5f,
+      -0.5f,  0.5f,  0.5f,
+      0.5f,  0.5f,  0.5f,
+      0.5f,  0.5f, -0.5f,
+      -0.5f, -0.5f, -0.5f,
+      -0.5f,  0.5f, -0.5f,
+      0.5f,  0.5f, -0.5f,
+      0.5f, -0.5f, -0.5f,
+      -0.5f, -0.5f, 0.5f,
+      -0.5f,  0.5f, 0.5f,
+      0.5f,  0.5f, 0.5f,
+      0.5f, -0.5f, 0.5f,
+      -0.5f, -0.5f, -0.5f,
+      -0.5f, -0.5f,  0.5f,
+      -0.5f,  0.5f,  0.5f,
+      -0.5f,  0.5f, -0.5f,
+      0.5f, -0.5f, -0.5f,
+      0.5f, -0.5f,  0.5f,
+      0.5f,  0.5f,  0.5f,
+      0.5f,  0.5f, -0.5f,
+        };
+
+        GLuint cubeIndices[] =
+        {
+           0, 2, 1,
+           0, 3, 2,
+           4, 5, 6,
+           4, 6, 7,
+           8, 9, 10,
+           8, 10, 11,
+           12, 15, 14,
+           12, 14, 13,
+           16, 17, 18,
+           16, 18, 19,
+           20, 23, 22,
+           20, 22, 21
+        };
+
+        GLfloat project_mat[16] =
+        {
+            0.5f, 0.0f, 0.0f, 0.0f,
+            0.0f, 0.5f, 0.0f, 0.0f,
+            0.0f, 0.0f, 0.5f, 0.0f,
+            0.0f, 0.0f, 0.0f, 1.0f
+        };
+
+        GLfloat obj_rotate[16] =
+        {
+            1.0f, 0.0f, 0.0f, 0.0f,
+            0.0f, 1.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 1.0, 0.0f,
+            0.0f, 0.0f, 0.0f, 1.0f
+        };
+        //linmath test
+
+
+#endif MY_GL_CODE
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
+        DrawMenuBar();
+
         // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
         {
-
             ImGui::Begin("Hello, world!"); // Create a window called "Hello, world!" and append into it.
 
             ImGui::Text("This is some useful text.");          // Display some text (you can use a format strings too)
@@ -370,32 +386,20 @@ int main(int, char **)
         glfwGetFramebufferSize(window, &display_w, &display_h);
         glViewport(0, 0, display_w, display_h);
 
+        glUseProgram(my_gl->program);
 
-#ifdef MY_GL_CODE
-
-        glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
-        glClear(GL_COLOR_BUFFER_BIT);
-        
-
-        GLfloat vVertices[] = {
-            0.0f, 0.5f, 0.0f,
-            -0.5f, -0.5f, 0.0f,
-            0.5f, -0.5f, 0.0f};
-
-	    glUseProgram ( my_gl->program );
-
+        glUniformMatrix4fv(my_gl->vert_member.at("uProjection"), 1, GL_FALSE, project_mat);
+        glUniformMatrix4fv(my_gl->vert_member.at("uTransform"), 1, GL_FALSE, obj_rotate);
         // you must use []. not .at()
         // see more https://gpgstudy.com/forum/viewtopic.php?t=25224
         // char * 대해 at 동작이 가능하도록 수정할 것
         //glEnableVertexAttribArray(my_gl->vert_member["vPosition"]);
         //glVertexAttribPointer(my_gl->vert_member["vPosition"], 3, GL_FLOAT, GL_FALSE, 0, vVertices);
         glEnableVertexAttribArray(my_gl->vert_member.at("vPosition"));
-        glVertexAttribPointer(my_gl->vert_member.at("vPosition"), 3, GL_FLOAT, GL_FALSE, 0, out_obj);
-
-
-        glDrawArrays(GL_LINES, 0, 59);
-
-#endif MY_GL_CODE
+        glVertexAttribPointer(my_gl->vert_member.at("vPosition"), 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), &model.positions[0]);
+        glLineWidth(3);
+        //glDrawArrays(GL_TRIANGLES, 0, 36);
+        glDrawElements(GL_TRIANGLES, model.v_faces.size(), GL_UNSIGNED_INT, &model.v_faces[0]);
 
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 

@@ -28,18 +28,20 @@ typedef struct GL3DObj
 	//std::string name;
 	//MTLInfo mtl_info;
 	
-    float **obj_positions, **obj_texels, **obj_normals, **obj_faces;
-	int vertices;
-	int positions;
-	int texels;
-	int normals;
-	int faces; // extend point, line, polygon
+    std::vector<float> positions, texels, normals;
+	std::vector<int> v_faces, vt_faces, vn_faces;
+	//int vertices;
+	//int positions;
+	//int texels;
+	//int normals;
+	//int faces; // extend point, line, polygon
 	bool smooth_shading;
 	
 } GL3DObj;
 
 //general functions
 int CheckError();
+int LoadObjectFile(GL3DObj* dest_model, std::string path);
 
 class GLShader
 {

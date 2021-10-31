@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <sstream>
 
 #include "gl_manager.h"
 #include "Logger.h"
@@ -19,6 +20,127 @@ int CheckError()
 	return false;
 }
 
+enum _ObjDataType {
+	kVertex = 0,
+	kTexel,
+	kNormal,
+	kFace
+}typedef ObjDataType;
+
+int LoadObjectFile(GL3DObj *dest_model, std::string path)
+{
+	std::ifstream obj_file(path, std::ios::in);
+	std::string obj_src;
+	int vertex_indices = 0;
+	int face_devide = 0;
+
+	bool exist_v = false, exist_vn = false, exist_vt = false;
+
+	if (obj_file.is_open())
+	{
+		std::string cur_line;
+
+		while (getline(obj_file, cur_line))
+		{
+			std::stringstream line_stream(cur_line);
+			std::string cur_token;
+
+			getline(line_stream, cur_token, ' ');
+
+			if (cur_token == "v")
+			{
+				if (exist_v == false)
+				{
+					exist_v = true;
+				}
+
+				while (getline(line_stream, cur_token, ' '))
+				{
+					dest_model->positions.push_back(atof(cur_token.c_str()));
+				}
+			}
+			else if (cur_token == "vt")
+			{
+				if (exist_vt == false)
+				{
+					exist_vt = true;
+				}
+
+				while (getline(line_stream, cur_token, ' '))
+				{
+					dest_model->texels.push_back(atof(cur_token.c_str()));
+				}
+			}
+			else if (cur_token == "vn")
+			{
+				if (exist_vn == false)
+				{
+					exist_vn = true;
+				}
+
+				while (getline(line_stream, cur_token, ' '))
+				{
+					dest_model->normals.push_back(atof(cur_token.c_str()));
+				}
+			}
+			else if (cur_token == "f")
+			{
+				while (getline(line_stream, cur_token, ' '))
+				{
+					std::stringstream face_stream(cur_token);
+					std::string face_token;
+
+					int face_type = 0;
+
+					while (getline(face_stream, face_token, '/'))
+					{
+						if (face_type == kVertex)
+						{
+							if (face_token != "")
+							{
+								dest_model->v_faces.push_back(atof(cur_token.c_str()));
+							}
+						}
+						else if (face_type == kTexel)
+						{
+							if (face_token != "")
+							{
+								dest_model->vt_faces.push_back(atof(cur_token.c_str()));
+							}
+						}
+						else if (face_type == kNormal)
+						{
+							if (face_token != "")
+							{
+								dest_model->vn_faces.push_back(atof(cur_token.c_str()));
+							}
+						}
+
+
+						face_type++;
+					}
+				}
+				//dest_model->faces++;
+			}
+		}
+		obj_file.close();
+	}
+
+	if (exist_v)
+	{
+		face_devide++;
+	}
+	if (exist_vt)
+	{
+		face_devide++;
+	}
+	if (exist_vn)
+	{
+		face_devide++;
+	}
+
+	return 0;
+}
 GLShader::GLShader()
 {
 	program = glCreateProgram();

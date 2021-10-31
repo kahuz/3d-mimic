@@ -6,11 +6,14 @@ project(3DMIMIC VERSION 0.1.0)
 include_directories( #include files
     ${CMAKE_CURRENT_SOURCE_DIR}/include/
     ${CMAKE_CURRENT_SOURCE_DIR}/include/common
+    #native file dialog header
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/nfd
 
-    #glfw lib
+    #glfw header
     ${CMAKE_CURRENT_SOURCE_DIR}/include/gl3w/
     ${CMAKE_CURRENT_SOURCE_DIR}/include/glfw/include/
     ${CMAKE_CURRENT_SOURCE_DIR}/include/usyner
+    #imgui header
     ${CMAKE_CURRENT_SOURCE_DIR}/include/imgui
     ${CMAKE_CURRENT_SOURCE_DIR}/include/imgui/backends
     ${CMAKE_CURRENT_SOURCE_DIR}/include/imgui/misc
@@ -35,9 +38,9 @@ set( HEADER # include header source files
 if(WIN32) # if windows
     set(HEADER ${HEADER} ${CMAKE_CURRENT_SOURCE_DIR}/include/imgui/backends/imgui_impl_win32.cpp)
     if(CMAKE_CL_64) # if 64bit windows
-        set(GLFW_DIR ${CMAKE_CURRENT_SOURCE_DIR}/"/include/glfw/lib-vc2010-64")
+        set(LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/"/lib/x64")
     else() # if 32bit windows
-        set(GLFW_DIR ${CMAKE_CURRENT_SOURCE_DIR}/"/include/glfw/lib-vc2010-32")
+        set(LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/"/lib/x86")
     endif()
 elseif(UNIX)
     add_compile_options(-Wall -Wextra)
@@ -51,5 +54,8 @@ add_executable(3DMIMIC
 
 target_link_libraries(3DMIMIC 
     PUBLIC
-    ${GLFW_DIR}/glfw3.lib opengl32.lib gdi32.lib
+    ${LIB_DIR}/glfw3.lib
+    ${LIB_DIR}/nfd_d.lib
+    opengl32.lib
+    gdi32.lib
 )
