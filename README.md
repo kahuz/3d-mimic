@@ -10,3 +10,6 @@
 - 0.0.1
   - window 기반 프로젝트 초기 환경 구축
   - linux 확장을 위해 빌드 환경은 cmake + vscode, 프로젝트는 glfw 기반 opengl로 설계/구상
+- 0.0.2
+  - 다이얼로그 기능 추가를 위한 NFD ( Native File Dialog ) 라이브러리 추가
+  - 메뉴바에서 3d object file 을 불러와 렌더링 하는 기능 추가
