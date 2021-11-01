@@ -28,7 +28,7 @@ typedef struct GL3DObj
 	//std::string name;
 	//MTLInfo mtl_info;
 	
-    std::vector<float> positions, texels, normals;
+    std::vector<GLfloat> positions, texels, normals;
 	std::vector<int> v_faces, vt_faces, vn_faces;
 	//int vertices;
 	//int positions;

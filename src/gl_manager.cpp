@@ -56,7 +56,7 @@ int LoadObjectFile(GL3DObj *dest_model, std::string path)
 
 				while (getline(line_stream, cur_token, ' '))
 				{
-					dest_model->positions.push_back(atof(cur_token.c_str()));
+					dest_model->positions.push_back(atof(cur_token.c_str()) / 2);
 				}
 			}
 			else if (cur_token == "vt")
@@ -68,7 +68,7 @@ int LoadObjectFile(GL3DObj *dest_model, std::string path)
 
 				while (getline(line_stream, cur_token, ' '))
 				{
-					dest_model->texels.push_back(atof(cur_token.c_str()));
+					dest_model->texels.push_back(atof(cur_token.c_str()) / 2);
 				}
 			}
 			else if (cur_token == "vn")
@@ -80,7 +80,7 @@ int LoadObjectFile(GL3DObj *dest_model, std::string path)
 
 				while (getline(line_stream, cur_token, ' '))
 				{
-					dest_model->normals.push_back(atof(cur_token.c_str()));
+					dest_model->normals.push_back(atof(cur_token.c_str()) / 2);
 				}
 			}
 			else if (cur_token == "f")
@@ -98,21 +98,21 @@ int LoadObjectFile(GL3DObj *dest_model, std::string path)
 						{
 							if (face_token != "")
 							{
-								dest_model->v_faces.push_back(atof(cur_token.c_str()));
+								dest_model->v_faces.push_back(atoi(cur_token.c_str()) -1);
 							}
 						}
 						else if (face_type == kTexel)
 						{
 							if (face_token != "")
 							{
-								dest_model->vt_faces.push_back(atof(cur_token.c_str()));
+								dest_model->vt_faces.push_back(atoi(cur_token.c_str()) -1);
 							}
 						}
 						else if (face_type == kNormal)
 						{
 							if (face_token != "")
 							{
-								dest_model->vn_faces.push_back(atof(cur_token.c_str()));
+								dest_model->vn_faces.push_back(atoi(cur_token.c_str()) -1);
 							}
 						}
 

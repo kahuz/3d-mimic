@@ -67,11 +67,37 @@ static void glfw_error_callback(int error, const char *description)
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
 
+std::string obj_path;
+
+GL3DObj model;
+bool load_model = false;
+
 void DrawFileMenuBar()
 {
+
     ImGui::MenuItem("(demo menu)", NULL, false, false);
     if (ImGui::MenuItem("New")) {}
-    if (ImGui::MenuItem("Open", "Ctrl+O")) {}
+    if (ImGui::MenuItem("Open", "Ctrl+O"))
+    {
+        nfdchar_t* outPath = NULL;
+        nfdresult_t result = NFD_OpenDialog("obj", NULL, &outPath);
+
+        if (result == NFD_OKAY)
+        {
+            obj_path = outPath;
+            LoadObjectFile(&model, obj_path);
+            load_model = true;
+            free(outPath);
+        }
+        else if (result == NFD_CANCEL)
+        {
+        }
+        else
+        {
+            printf("Error: %s\n", NFD_GetError());
+        }
+
+    }
     if (ImGui::BeginMenu("Open Recent"))
     {
         ImGui::MenuItem("fish_hat.c");
@@ -145,6 +171,7 @@ void DrawMenuBar()
         if (ImGui::BeginMenu("File"))
         {
             DrawFileMenuBar();
+            
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Edit"))
@@ -244,9 +271,6 @@ int main(int, char **)
     bool show_another_window = false;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
-#define MY_GL_CODE
-
-#ifdef MY_GL_CODE
     //init GLSL Program
     GLShader *my_gl = new GLShader(vShaderStr, fShaderStr);
 
@@ -255,14 +279,6 @@ int main(int, char **)
     my_gl->SetGLUniformLocation(GL_VERTEX_SHADER, "uProjection");
     my_gl->SetGLUniformLocation(GL_VERTEX_SHADER, "uTransform");
 
-//	GLint tmp_loc = glGetAttribLocation(my_gl->program, "vPosition");
-    
-	GL3DObj model;
-	string path = "D:/github/3d-mimic/resource/teapot.obj";
-
-    LoadObjectFile(&model , path);
-
-#endif
     static float f = 0.0f;
     static int counter = 0;
 
@@ -276,73 +292,7 @@ int main(int, char **)
         // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
         glfwPollEvents();
 
-#ifdef MY_GL_CODE
 
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glClearColor(clear_color.x* clear_color.w, clear_color.y* clear_color.w, clear_color.z* clear_color.w, clear_color.w);
-
-        GLfloat vVertices[] = {
-      -0.5f, -0.5f, -0.5f,
-      -0.5f, -0.5f,  0.5f,
-      0.5f, -0.5f,  0.5f,
-      0.5f, -0.5f, -0.5f,
-      -0.5f,  0.5f, -0.5f,
-      -0.5f,  0.5f,  0.5f,
-      0.5f,  0.5f,  0.5f,
-      0.5f,  0.5f, -0.5f,
-      -0.5f, -0.5f, -0.5f,
-      -0.5f,  0.5f, -0.5f,
-      0.5f,  0.5f, -0.5f,
-      0.5f, -0.5f, -0.5f,
-      -0.5f, -0.5f, 0.5f,
-      -0.5f,  0.5f, 0.5f,
-      0.5f,  0.5f, 0.5f,
-      0.5f, -0.5f, 0.5f,
-      -0.5f, -0.5f, -0.5f,
-      -0.5f, -0.5f,  0.5f,
-      -0.5f,  0.5f,  0.5f,
-      -0.5f,  0.5f, -0.5f,
-      0.5f, -0.5f, -0.5f,
-      0.5f, -0.5f,  0.5f,
-      0.5f,  0.5f,  0.5f,
-      0.5f,  0.5f, -0.5f,
-        };
-
-        GLuint cubeIndices[] =
-        {
-           0, 2, 1,
-           0, 3, 2,
-           4, 5, 6,
-           4, 6, 7,
-           8, 9, 10,
-           8, 10, 11,
-           12, 15, 14,
-           12, 14, 13,
-           16, 17, 18,
-           16, 18, 19,
-           20, 23, 22,
-           20, 22, 21
-        };
-
-        GLfloat project_mat[16] =
-        {
-            0.5f, 0.0f, 0.0f, 0.0f,
-            0.0f, 0.5f, 0.0f, 0.0f,
-            0.0f, 0.0f, 0.5f, 0.0f,
-            0.0f, 0.0f, 0.0f, 1.0f
-        };
-
-        GLfloat obj_rotate[16] =
-        {
-            1.0f, 0.0f, 0.0f, 0.0f,
-            0.0f, 1.0f, 0.0f, 0.0f,
-            0.0f, 0.0f, 1.0, 0.0f,
-            0.0f, 0.0f, 0.0f, 1.0f
-        };
-        //linmath test
-
-
-#endif MY_GL_CODE
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -384,25 +334,45 @@ int main(int, char **)
         ImGui::Render();
         int display_w, display_h;
         glfwGetFramebufferSize(window, &display_w, &display_h);
-        glViewport(0, 0, display_w, display_h);
+        static int x = 0, y = 0, frame_num = 0;
 
-        glUseProgram(my_gl->program);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
 
-        glUniformMatrix4fv(my_gl->vert_member.at("uProjection"), 1, GL_FALSE, project_mat);
-        glUniformMatrix4fv(my_gl->vert_member.at("uTransform"), 1, GL_FALSE, obj_rotate);
-        // you must use []. not .at()
-        // see more https://gpgstudy.com/forum/viewtopic.php?t=25224
-        // char * 대해 at 동작이 가능하도록 수정할 것
-        //glEnableVertexAttribArray(my_gl->vert_member["vPosition"]);
-        //glVertexAttribPointer(my_gl->vert_member["vPosition"], 3, GL_FLOAT, GL_FALSE, 0, vVertices);
-        glEnableVertexAttribArray(my_gl->vert_member.at("vPosition"));
-        glVertexAttribPointer(my_gl->vert_member.at("vPosition"), 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), &model.positions[0]);
-        glLineWidth(3);
-        //glDrawArrays(GL_TRIANGLES, 0, 36);
-        glDrawElements(GL_TRIANGLES, model.v_faces.size(), GL_UNSIGNED_INT, &model.v_faces[0]);
+        if (load_model)
+        {
+            GLfloat project_mat[16] =
+            {
+                0.5f, 0.0f, 0.0f, 0.0f,
+                0.0f, 0.5f, 0.0f, 0.0f,
+                0.0f, 0.0f, 0.5f, 0.0f,
+                0.0f, 0.0f, 0.0f, 1.0f
+            };
 
+            GLfloat obj_rotate[16] =
+            {
+                1.0f, 0.0f, 0.0f, 0.0f,
+                0.0f, 1.0f, 0.0f, 0.0f,
+                0.0f, 0.0f, 1.0, 0.0f,
+                0.0f, 0.0f, 0.0f, 1.0f
+            };
+            //linmath test
+            glViewport(0, 0, display_w, display_h);
+
+            glUseProgram(my_gl->program);
+
+            glUniformMatrix4fv(my_gl->vert_member.at("uProjection"), 1, GL_FALSE, project_mat);
+            glUniformMatrix4fv(my_gl->vert_member.at("uTransform"), 1, GL_FALSE, obj_rotate);
+
+            glEnableVertexAttribArray(my_gl->vert_member.at("vPosition"));
+            glVertexAttribPointer(my_gl->vert_member.at("vPosition"), 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), &model.positions[0]);
+            
+            glLineWidth(3);
+
+            glDrawElements(GL_LINES, model.v_faces.size(), GL_UNSIGNED_INT, &model.v_faces[0]);
+
+        }
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
         glfwSwapBuffers(window);
     }              
     // Cleanup
