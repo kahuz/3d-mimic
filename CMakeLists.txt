@@ -21,6 +21,8 @@ include_directories( #include files
 
 set( SOURCE # project source files
     ${CMAKE_CURRENT_SOURCE_DIR}/src/gl_manager.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mimic_renderer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mimic_ui.cpp
 )
 set( HEADER # include header source files
     #glfw - imgui source

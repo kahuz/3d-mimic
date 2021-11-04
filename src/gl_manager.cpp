@@ -27,7 +27,7 @@ enum _ObjDataType {
 	kFace
 }typedef ObjDataType;
 
-int LoadObjectFile(GL3DObj *dest_model, std::string path)
+int LoadObjectFile(GL3DObj *dest_model, const char *path)
 {
 	std::ifstream obj_file(path, std::ios::in);
 	std::string obj_src;
@@ -56,7 +56,7 @@ int LoadObjectFile(GL3DObj *dest_model, std::string path)
 
 				while (getline(line_stream, cur_token, ' '))
 				{
-					dest_model->positions.push_back(atof(cur_token.c_str()) / 2);
+					dest_model->positions.push_back(atof(cur_token.c_str()));
 				}
 			}
 			else if (cur_token == "vt")
@@ -68,7 +68,7 @@ int LoadObjectFile(GL3DObj *dest_model, std::string path)
 
 				while (getline(line_stream, cur_token, ' '))
 				{
-					dest_model->texels.push_back(atof(cur_token.c_str()) / 2);
+					dest_model->texels.push_back(atof(cur_token.c_str()));
 				}
 			}
 			else if (cur_token == "vn")
@@ -80,7 +80,7 @@ int LoadObjectFile(GL3DObj *dest_model, std::string path)
 
 				while (getline(line_stream, cur_token, ' '))
 				{
-					dest_model->normals.push_back(atof(cur_token.c_str()) / 2);
+					dest_model->normals.push_back(atof(cur_token.c_str()));
 				}
 			}
 			else if (cur_token == "f")
@@ -141,6 +141,7 @@ int LoadObjectFile(GL3DObj *dest_model, std::string path)
 
 	return 0;
 }
+
 GLShader::GLShader()
 {
 	program = glCreateProgram();
@@ -199,7 +200,7 @@ GLuint GLShader::CreateShader(GLenum type, const char *shader_src)
     return shader_id;
 }
 
-GLuint GLShader::LoadShader(GLenum type, const char *shader_path)
+bool GLShader::LoadShader(GLenum type, const char *shader_path)
 {
 	GLuint shader_id = -1;
 	std::string shader_src;
@@ -214,17 +215,24 @@ GLuint GLShader::LoadShader(GLenum type, const char *shader_path)
 		{
 			shader_src += "\n" + cur_line;
 		}
+
 		shader_stream.close();
 	}else
 	{
 		Err("Don't open %s", shader_path);
-		getchar();
-		return 0;
+
+		return false;
 	}
 
-	shader_id = CreateShader(type, shader_src.c_str());
-
-	return shader_id;
+	if (type == GL_VERTEX_SHADER)
+	{
+		v_shader = CreateShader(GL_VERTEX_SHADER, shader_src.c_str());
+	}
+	else if (type == GL_FRAGMENT_SHADER)
+	{
+		f_shader = CreateShader(GL_FRAGMENT_SHADER, shader_src.c_str());
+	}
+	return true;
 }
 
 
@@ -232,14 +240,18 @@ GLuint GLShader::LoadShader(GLenum type, const char *shader_path)
 void GLShader::LinkShaders()
 {
 	glAttachShader(program, v_shader);
+	CheckError();
 	glAttachShader(program, f_shader);
+	CheckError();
 	glLinkProgram(program);
+	CheckError();
 }
 int GLShader::SetGLAttribLocation(GLenum type, std::string attri_name)
 {
 	GLint tmp_loc = glGetAttribLocation(program, attri_name.c_str());
 
 	Log("key [%s] value[%d]",attri_name, tmp_loc);
+
 	if(type == GL_VERTEX_SHADER)
 	{
 		vert_member.insert(std::pair<std::string , GLint>(attri_name, tmp_loc));
@@ -257,6 +269,7 @@ int GLShader::SetGLUniformLocation(GLenum type, std::string uniform_name)
 	GLint tmp_uniform = glGetUniformLocation(program, uniform_name.c_str());
 
 	Log("key [%s] value[%d]", uniform_name, tmp_uniform);
+
 	if(type == GL_VERTEX_SHADER)
 	{
 		vert_member.insert(std::pair<std::string, GLint>(uniform_name, tmp_uniform));

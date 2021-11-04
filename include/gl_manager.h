@@ -25,23 +25,18 @@ typedef struct MTLInfo{
 */
 typedef struct GL3DObj
 {
-	//std::string name;
 	//MTLInfo mtl_info;
 	
     std::vector<GLfloat> positions, texels, normals;
 	std::vector<int> v_faces, vt_faces, vn_faces;
-	//int vertices;
-	//int positions;
-	//int texels;
-	//int normals;
-	//int faces; // extend point, line, polygon
+
 	bool smooth_shading;
 	
 } GL3DObj;
 
 //general functions
 int CheckError();
-int LoadObjectFile(GL3DObj* dest_model, std::string path);
+int LoadObjectFile(GL3DObj* dest_model, const char* path);
 
 class GLShader
 {
@@ -63,7 +58,7 @@ class GLShader
 		~GLShader();
 
 		void LinkShaders();
-		GLuint LoadShader(GLenum type, const char *shader_path);
+		bool LoadShader(GLenum type, const char *shader_path);
 
 		int SetGLAttribLocation(GLenum type, std::string attri_name);
 		int SetGLUniformLocation(GLenum type, std::string uniform_name);
