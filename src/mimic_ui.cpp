@@ -3,6 +3,9 @@
 // system header
 #include <string>
 #include <memory>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 // imgui header
 #include "imgui.h"
 // user header
@@ -12,8 +15,87 @@
 using namespace std;
 
 bool g_menu_load_model = false;
+bool g_active_rotate = false;
 // FIXME :: remove under line !!!
 GL3DObj g_model;
+
+enum _EnableToolIdx {
+    kMOVE = 0, //"../resource/icons/move_icon.png"
+    kROTATE //"../resource/icons/rotate_icon.png"
+}typedef EnableToolIdx;
+vector<string> v_icon_path = { "../resource/icons/move_icon.png", "../resource/icons/rotate_icon.png"};
+vector<IMGResourceInfo> v_icon_info;
+
+// UI 관련 전역 함수 모음
+GLuint GetTextureId(const void* img_data, int width, int height, int img_channel)
+{
+    GLint prev_texture;
+    GLuint tex_id;
+    //현재 그리고(Rendering) 있는 텍스처 아이디를 가져온다.
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &prev_texture);
+
+    glGenTextures(1, &tex_id);
+    glBindTexture(GL_TEXTURE_2D, tex_id);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    switch (img_channel)
+    {
+    case 3: // RGB
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, img_data);
+        break;
+
+    case 4:
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img_data);
+        break;
+    default:
+        break;
+    }
+    // Restore state
+    // 위에서 연결된 icon 텍스처가 아닌 원래 텍스터를 다시 연결해준다.
+    glBindTexture(GL_TEXTURE_2D, prev_texture);
+
+    return tex_id;
+}
+
+void InitIconResource()
+{
+    for (int i = 0; i < v_icon_path.size(); i++)
+    {
+        IMGResourceInfo new_icon;
+
+        int imgChannels;
+        void* img_data = stbi_load(v_icon_path[i].c_str(), &new_icon.img_width, &new_icon.img_height, &imgChannels, 0);
+
+        new_icon.tex_id = GetTextureId(img_data, new_icon.img_width, new_icon.img_height, imgChannels);
+
+        v_icon_info.push_back(new_icon);
+    }
+}
+
+void InitUI()
+{
+    InitIconResource();
+}
+
+void DrawToolBar()
+{
+    ImGui::Begin("Toolbar");
+
+    ImVec2 img_size(UI_TOOLBAR_ICON_W, UI_TOOLBAR_ICON_H);
+
+    if(ImGui::ImageButton((ImTextureID)(intptr_t)v_icon_info[kMOVE].tex_id, img_size))
+    {
+
+    }
+    if (ImGui::ImageButton((ImTextureID)(intptr_t)v_icon_info[kROTATE].tex_id, img_size))
+    {
+        g_active_rotate = !g_active_rotate;
+    }
+
+    ImGui::End();
+}
 
 void DrawFileMenuBar()
 {

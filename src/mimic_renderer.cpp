@@ -64,7 +64,7 @@ void MimicRender()
 {
     
     InitRenderContext();
-
+    InitUI();
     bool show_demo_window = true;
     bool show_another_window = false;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
@@ -99,13 +99,12 @@ void MimicRender()
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
+        DrawToolBar();
         DrawMenuBar();
 
         static int x = 0, y = 0, frame_num = 0;
         static float angle = 90, cur_x_pos = 0, prev_x_pos = 0, cur_y_pos = 0, prev_y_pos = 0;
         static float angle_x = 0.0f, angle_y = 0.0f;
-        static bool active_rotate = false;
-        static std::string rotate_btn_str = "Disable Rotate";
         int mouse_state = 0; // 0 release, 1 press
 
         ImGuiIO& io = ImGui::GetIO();
@@ -123,19 +122,6 @@ void MimicRender()
             if (ImGui::Button("Button")) // Buttons return true when clicked (most widgets return true when edited/activated)
                 counter++;
 
-            if (ImGui::Button(rotate_btn_str.c_str()))
-            {
-                active_rotate = !active_rotate;
-
-                if (active_rotate)
-                {
-                    rotate_btn_str = "Enable Rotate";
-                }
-                else
-                {
-                    rotate_btn_str = "Disable Rotate";
-                }
-            }
             ImGui::SameLine();
             ImGui::Text("counter = %d", counter);
 
@@ -214,7 +200,7 @@ void MimicRender()
                 0.0f, 0.0f, 0.0f, 1.0f
             };
 
-            if (mouse_state == 1 && active_rotate)
+            if (mouse_state == 1 && g_active_rotate)
             {
                 cur_x_pos = io.MousePos.x;
                 cur_y_pos = io.MousePos.y;
