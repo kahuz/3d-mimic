@@ -26,6 +26,8 @@ enum _EnableToolIdx {
 vector<string> v_icon_path = { "../resource/icons/move_icon.png", "../resource/icons/rotate_icon.png"};
 vector<IMGResourceInfo> v_icon_info;
 
+string g_bg_path = "../resource/textures/bg_grid.png";
+IMGResourceInfo g_bg_info;
 // UI 관련 전역 함수 모음
 GLuint GetTextureId(const void* img_data, int width, int height, int img_channel)
 {
@@ -59,6 +61,19 @@ GLuint GetTextureId(const void* img_data, int width, int height, int img_channel
     return tex_id;
 }
 
+void InitBackGround()
+{
+    int imgChannels;
+    void* tmp_img_data;
+    tmp_img_data = stbi_load(g_bg_path.c_str(), &g_bg_info.img_width, &g_bg_info.img_height, &imgChannels, 0);
+
+    g_bg_info.img_data = (unsigned char*)malloc(sizeof(unsigned char) * g_bg_info.img_width * g_bg_info.img_height * imgChannels);
+    
+    memcpy((void *)g_bg_info.img_data, tmp_img_data, g_bg_info.img_width * g_bg_info.img_height * imgChannels);
+
+    g_bg_info.tex_id = GetTextureId(g_bg_info.img_data, g_bg_info.img_width, g_bg_info.img_height, imgChannels);
+}
+
 void InitIconResource()
 {
     for (int i = 0; i < v_icon_path.size(); i++)
@@ -66,7 +81,7 @@ void InitIconResource()
         IMGResourceInfo new_icon;
 
         int imgChannels;
-        void* img_data = stbi_load(v_icon_path[i].c_str(), &new_icon.img_width, &new_icon.img_height, &imgChannels, 0);
+        void *img_data = stbi_load(v_icon_path[i].c_str(), &new_icon.img_width, &new_icon.img_height, &imgChannels, 0);
 
         new_icon.tex_id = GetTextureId(img_data, new_icon.img_width, new_icon.img_height, imgChannels);
 
@@ -77,6 +92,7 @@ void InitIconResource()
 void InitUI()
 {
     InitIconResource();
+    InitBackGround();
 }
 
 void DrawToolBar()

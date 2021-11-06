@@ -1,4 +1,4 @@
-#version 100
+#version 130
 attribute lowp vec4 aPosition;
 attribute lowp vec2 aTexCoord;
 varying lowp vec4 vColor;

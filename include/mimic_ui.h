@@ -20,10 +20,13 @@ extern GL3DObj g_model;
 
 struct _IMGResourceInfo {
     std::string img_path;
+    unsigned char* img_data;
     int img_width;
     int img_height;
     GLuint tex_id;
 }typedef IMGResourceInfo;
+
+extern IMGResourceInfo g_bg_info;
 
 void InitUI();
 void DrawToolBar();

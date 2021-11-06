@@ -116,11 +116,9 @@ int LoadObjectFile(GL3DObj *dest_model, const char *path)
 							}
 						}
 
-
 						face_type++;
 					}
 				}
-				//dest_model->faces++;
 			}
 		}
 		obj_file.close();
@@ -235,8 +233,6 @@ bool GLShader::LoadShader(GLenum type, const char *shader_path)
 	return true;
 }
 
-
-
 void GLShader::LinkShaders()
 {
 	glAttachShader(program, v_shader);
@@ -246,6 +242,7 @@ void GLShader::LinkShaders()
 	glLinkProgram(program);
 	CheckError();
 }
+
 int GLShader::SetGLAttribLocation(GLenum type, std::string attri_name)
 {
 	GLint tmp_loc = glGetAttribLocation(program, attri_name.c_str());

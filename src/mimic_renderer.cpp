@@ -7,6 +7,96 @@
 using namespace std;
 
 static GLFWwindow *window = NULL;
+//init GLSL Program
+GLShader* my_gl;
+GLShader* bg_grid;
+
+mat4x4 g_proj_mat =
+{
+    1.0f, 0.0f, 0.0f, 0.0f,
+    0.0f, 1.0f, 0.0f, 0.0f,
+    0.0f, 0.0f, 1.0f, 0.0f,
+    0.0f, 0.0f, 0.0f, 1.0f
+}; 
+
+mat4x4 g_model_mat =
+{
+    1.0f, 0.0f, 0.0f, 0.0f,
+    0.0f, 1.0f, 0.0f, 0.0f,
+    0.0f, 0.0f, 1.0f, 0.0f,
+    0.0f, 0.0f, 0.0f, 1.0f
+};
+
+mat4x4 g_view_mat =
+{
+    0.2f, 0.0f, 0.0f, 0.0f,
+    0.0f, 0.2f, 0.0f, 0.0f,
+    0.0f, 0.0f, 0.2f, 0.0f,
+    0.0f, 0.0f, 0.0f, 1.0f
+};
+
+GLushort g_bg_buf_idx[] = { 0, 1, 2, 0, 2, 3 };
+
+GLfloat g_bg_buf[] = {
+    -1.0f,  1.0f, 0.0f,  // Position 0
+    0.0f,  0.0f,        // TexCoord 0
+    -1.0f, -1.0f, 0.0f,  // Position 1
+    0.0f,  1.0f,        // TexCoord 1
+    1.0f, -1.0f, 0.0f,  // Position 2
+    1.0f,  1.0f,        // TexCoord 2
+    1.0f,  1.0f, 0.0f,  // Position 3
+    1.0f,  0.0f         // TexCoord 3
+};
+
+// FIXME:: rename function
+void RotateWithPos(ImVec2 pos)
+{
+    //cur_x_pos = io.MousePos.x;
+    //cur_y_pos = io.MousePos.y;
+    //
+    //if (cur_x_pos != prev_x_pos)
+    //{
+    //    angle_x += std::fmod((cur_x_pos - prev_x_pos), 360.0f) / 20;
+    //
+    //    if (angle_x > 360.0f || angle_x < -360.0f)
+    //    {
+    //        angle_x = 0.0f;
+    //    }
+    //}
+    //if (cur_y_pos != prev_y_pos)
+    //{
+    //    angle_y += std::fmod((cur_y_pos - prev_y_pos), 360.0f) / 20;
+    //
+    //    if (angle_y > 360.0f || angle_y < -360.0f)
+    //    {
+    //        angle_y = 0.0f;
+    //    }
+    //}
+    //
+    //float x_s = sinf(angle_y);
+    //float x_c = cosf(angle_y);
+    //
+    //float y_s = sinf(angle_x);
+    //float y_c = cosf(angle_x);
+    //
+    //mat4x4 mRotate_X_Mat =
+    //{
+    //    1.f, 0.f, 0.f, 0.f,
+    //    0.f,   x_c,   x_s, 0.f,
+    //    0.f,  -x_s,   x_c, 0.f,
+    //    0.f, 0.f, 0.f, 1.f
+    //};
+    //
+    //mat4x4 mRotate_Y_Mat =
+    //{
+    //    y_c, 0.f,  -y_s, 0.f,
+    //     0.f, 1.f, 0.f, 0.f,
+    //       y_s, 0.f,   y_c, 0.f,
+    //     0.f, 0.f, 0.f, 1.f
+    //};
+    //
+    //mat4x4_mul(g_model_mat, mRotate_X_Mat, mRotate_Y_Mat);
+}
 
 static void glfw_error_callback(int error, const char* description)
 {
@@ -60,17 +150,57 @@ bool InitRenderContext()
     return true;
 }
 
+void DrawBackGround()
+{
+    glUseProgram(bg_grid->program);
+
+    glUniform4f(bg_grid->vert_member.at("uGlobalColor"), 1.0f, 1.0f, 1.0f, 1.0f);
+    glUniformMatrix4fv(bg_grid->vert_member.at("uProjection"), 1, GL_FALSE, (GLfloat *)g_proj_mat);
+
+    glEnableVertexAttribArray(bg_grid->vert_member.at("aPosition"));
+    glEnableVertexAttribArray(bg_grid->vert_member.at("aTexCoord"));
+
+    // Load the vertex position
+    glVertexAttribPointer(bg_grid->vert_member.at("aPosition"), 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), g_bg_buf);
+
+    // Load the texture coordinate
+    glVertexAttribPointer(bg_grid->vert_member.at("aTexCoord"), 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), &g_bg_buf[3]);
+
+    // Bind the base map
+    glActiveTexture(GL_TEXTURE0);
+
+    glBindTexture(GL_TEXTURE_2D, g_bg_info.tex_id);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, g_bg_info.img_width, g_bg_info.img_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, g_bg_info.img_data);
+    // Set the base map sampler to texture unit to 0
+
+    glUniform1i(bg_grid->frag_member.at("uTexture0"), 0);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, g_bg_buf_idx);
+}
 void MimicRender()
 {
-    
     InitRenderContext();
     InitUI();
+
     bool show_demo_window = true;
     bool show_another_window = false;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
-    //init GLSL Program
-    GLShader* my_gl = new GLShader();
+    my_gl = new GLShader();
+    bg_grid = new GLShader();
+
+    bg_grid->LoadShader(GL_VERTEX_SHADER, "../src/gl_shader/texture.vshader");
+    bg_grid->LoadShader(GL_FRAGMENT_SHADER, "../src/gl_shader/texture.fshader");
+    bg_grid->LinkShaders();
+    //set vertex Attribute vPosition
+    bg_grid->SetGLAttribLocation(GL_VERTEX_SHADER, "aTexCoord");
+    bg_grid->SetGLUniformLocation(GL_VERTEX_SHADER, "uGlobalColor");
+    bg_grid->SetGLUniformLocation(GL_VERTEX_SHADER, "uProjection");
+    bg_grid->SetGLUniformLocation(GL_VERTEX_SHADER, "aPosition");
+
+    bg_grid->SetGLAttribLocation(GL_FRAGMENT_SHADER, "uTexture0");
 
     my_gl->LoadShader(GL_VERTEX_SHADER, "../src/gl_shader/object.vshader");
     my_gl->LoadShader(GL_FRAGMENT_SHADER, "../src/gl_shader/object.fshader");
@@ -164,10 +294,13 @@ void MimicRender()
         // Rendering
         ImGui::Render();
         int display_w, display_h;
-        glfwGetFramebufferSize(window, &display_w, &display_h);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glfwGetFramebufferSize(window, &display_w, &display_h); 
         glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
 
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_BLEND);
+        
+        glViewport(0, 0, display_w, display_h);
         if (g_menu_load_model)
         {
             frame_num++;
@@ -176,30 +309,7 @@ void MimicRender()
             {
                 angle++;
             }
-            GLfloat mProjeMat[16] =
-            {
-                0.3f, 0.0f, 0.0f, 0.0f,
-                0.0f, 0.3f, 0.0f, 0.0f,
-                0.0f, 0.0f, 0.3f, 0.0f,
-                0.0f, 0.0f, 0.0f, 1.0f
-            };
-
-            GLfloat mViewMat[16] =
-            {
-                1.0f, 0.0f, 0.0f, 0.0f,
-                0.0f, 1.0f, 0.0f, 0.0f,
-                0.0f, 0.0f, 1.0, 0.0f,
-                0.0f, 0.0f, 0.0f, 1.0f
-            };
-
-            GLfloat mModelMat[16] =
-            {
-                1.0f, 0.0f, 0.0f, 0.0f,
-                0.0f, 1.0f, 0.0f, 0.0f,
-                0.0f, 0.0f, 1.0, 0.0f,
-                0.0f, 0.0f, 0.0f, 1.0f
-            };
-
+            
             if (mouse_state == 1 && g_active_rotate)
             {
                 cur_x_pos = io.MousePos.x;
@@ -231,7 +341,7 @@ void MimicRender()
             float y_s = sinf(angle_x);
             float y_c = cosf(angle_x);
 
-            GLfloat mRotate_X_Mat[16] =
+            mat4x4 mRotate_X_Mat =
             {
                 1.f, 0.f, 0.f, 0.f,
                 0.f,   x_c,   x_s, 0.f,
@@ -239,24 +349,22 @@ void MimicRender()
                 0.f, 0.f, 0.f, 1.f
             };
 
-            GLfloat mRotate_Y_Mat[16] = {
-                   y_c, 0.f,  -y_s, 0.f,
+            mat4x4 mRotate_Y_Mat =
+            {
+                y_c, 0.f,  -y_s, 0.f,
                  0.f, 1.f, 0.f, 0.f,
                    y_s, 0.f,   y_c, 0.f,
                  0.f, 0.f, 0.f, 1.f
             };
 
+            mat4x4_mul(g_model_mat, mRotate_X_Mat, mRotate_Y_Mat);
             //linmath test
-            glViewport(0, 0, display_w, display_h);
 
             glUseProgram(my_gl->program);
 
-            glUniformMatrix4fv(my_gl->vert_member.at("uProjection"), 1, GL_FALSE, mProjeMat);
-            //glUniformMatrix4fv(my_gl->vert_member.at("uView"), 1, GL_FALSE, mViewMat);
-            glUniformMatrix4fv(my_gl->vert_member.at("uView"), 1, GL_FALSE, mRotate_X_Mat);
-
-            //glUniformMatrix4fv(my_gl->vert_member.at("uModel"), 1, GL_FALSE, mModelMat);
-            glUniformMatrix4fv(my_gl->vert_member.at("uModel"), 1, GL_FALSE, mRotate_Y_Mat);
+            glUniformMatrix4fv(my_gl->vert_member.at("uProjection"), 1, GL_FALSE, (GLfloat *)g_proj_mat);
+            glUniformMatrix4fv(my_gl->vert_member.at("uView"), 1, GL_FALSE, (GLfloat *)g_view_mat);
+            glUniformMatrix4fv(my_gl->vert_member.at("uModel"), 1, GL_FALSE, (GLfloat *)g_model_mat);
 
             glEnableVertexAttribArray(my_gl->vert_member.at("vPosition"));
             glVertexAttribPointer(my_gl->vert_member.at("vPosition"), 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), &g_model.positions[0]);
@@ -268,6 +376,8 @@ void MimicRender()
             prev_x_pos = cur_x_pos;
             prev_y_pos = cur_y_pos;
         }
+        DrawBackGround();
+
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);
     }
