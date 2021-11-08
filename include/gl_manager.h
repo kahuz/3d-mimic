@@ -30,13 +30,33 @@ typedef struct GL3DObj
     std::vector<GLfloat> positions, texels, normals;
 	std::vector<int> v_faces, vt_faces, vn_faces;
 
-	bool smooth_shading;
+	bool smooth_shading = false;
+
+	void GL3DObj::ClearObj()
+	{
+		positions.clear();
+		texels.clear();
+		normals.clear();
+		v_faces.clear();
+		vt_faces.clear();
+		vn_faces.clear();
+
+		positions.shrink_to_fit();
+		texels.shrink_to_fit();
+		normals.shrink_to_fit();
+		v_faces.shrink_to_fit();
+		vt_faces.shrink_to_fit();
+		vn_faces.shrink_to_fit();
+
+		smooth_shading = false;
+	}
 	
 } GL3DObj;
 
 //general functions
 int CheckError();
 int LoadObjectFile(GL3DObj* dest_model, const char* path);
+int LoadObjectsFile(std::vector<GL3DObj> *dest_model, const char* path);
 
 class GLShader
 {

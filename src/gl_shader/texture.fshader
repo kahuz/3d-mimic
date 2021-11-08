@@ -1,8 +1,8 @@
 // Draw fragment shader
 #version 130
 uniform sampler2D uTexture0;
-varying lowp vec4 vColor;
-varying lowp vec2 vTexCoord;
+varying vec4 vColor;
+varying vec2 vTexCoord;
 
 void main()
 {

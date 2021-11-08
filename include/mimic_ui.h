@@ -5,10 +5,12 @@
 // user header
 #include "gl_manager.h"
 #include <string>
+#include <vector>
 
 extern bool g_menu_load_model;
 extern bool g_active_rotate;
 extern GL3DObj g_model;
+extern std::vector<GL3DObj> v_models;
 
 #define DRAW_DEFAULT_UV_MIN		ImVec2(0.0f, 0.0f)
 #define DRAW_DEFAULT_UV_MAX		ImVec2(1.0f, 1.0f)

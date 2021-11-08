@@ -3,10 +3,17 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <vector>
 
 #include "gl_manager.h"
 #include "Logger.h"
 
+enum _ObjDataType {
+	kVertex = 0,
+	kTexel,
+	kNormal,
+	kFace
+}typedef ObjDataType;
 int CheckError()
 {
 	int err_type = 0;
@@ -20,21 +27,135 @@ int CheckError()
 	return false;
 }
 
-enum _ObjDataType {
-	kVertex = 0,
-	kTexel,
-	kNormal,
-	kFace
-}typedef ObjDataType;
+float MyRound(float src, int depth)
+{
+	int mul_value = 1;
+	int convert_src_to_int = 0;
+	float tmp = 0.0f;
 
-int LoadObjectFile(GL3DObj *dest_model, const char *path)
+	for (int i = 1; i <= depth; i++)
+	{
+		mul_value *= 10;
+	}
+
+	convert_src_to_int = src * mul_value;
+
+	for (int i = 0; i <= depth; i++)
+	{
+		int tmp_i = convert_src_to_int % 10;
+		tmp += (float)tmp_i / mul_value;
+		mul_value /= 10;
+		convert_src_to_int /= 10;
+	}
+
+	return tmp;
+}
+
+int LoadObjectsFile(std::vector<GL3DObj> *dest_model, const char* path)
 {
 	std::ifstream obj_file(path, std::ios::in);
 	std::string obj_src;
-	int vertex_indices = 0;
-	int face_devide = 0;
+	bool is_first_obj = true;
+	
+	GL3DObj res_obj;
 
-	bool exist_v = false, exist_vn = false, exist_vt = false;
+	if (obj_file.is_open())
+	{
+		std::string cur_line;
+
+		while (getline(obj_file, cur_line))
+		{
+			std::stringstream line_stream(cur_line);
+			std::string cur_token;
+
+			getline(line_stream, cur_token, ' ');
+
+			if (cur_token == "o")
+			{
+				if (is_first_obj == false)
+				{
+					dest_model->push_back(res_obj);
+					res_obj.ClearObj();
+				}
+				else
+				{
+					is_first_obj = false;
+				}
+			}
+			else if (cur_token == "v")
+			{
+				while (getline(line_stream, cur_token, ' '))
+				{
+					float get_value = atof(cur_token.c_str());
+
+					res_obj.positions.push_back(get_value);
+				}
+			}
+			else if (cur_token == "vt")
+			{
+				while (getline(line_stream, cur_token, ' '))
+				{
+					float get_value = atof(cur_token.c_str());
+
+					res_obj.texels.push_back(get_value);
+				}
+			}
+			else if (cur_token == "vn")
+			{
+				while (getline(line_stream, cur_token, ' '))
+				{
+					float get_value = atof(cur_token.c_str());
+
+					res_obj.normals.push_back(get_value);
+				}
+			}
+			else if (cur_token == "f")
+			{
+				while (getline(line_stream, cur_token, ' '))
+				{
+					std::stringstream face_stream(cur_token);
+					std::string face_token;
+
+					int face_type = 0;
+
+					while (getline(face_stream, face_token, '/'))
+					{
+						if (face_type == kVertex)
+						{
+							if (face_token != "")
+							{
+								res_obj.v_faces.push_back(atoi(cur_token.c_str()) - 1);
+							}
+						}
+						else if (face_type == kTexel)
+						{
+							if (face_token != "")
+							{
+								res_obj.vt_faces.push_back(atoi(cur_token.c_str()) - 1);
+							}
+						}
+						else if (face_type == kNormal)
+						{
+							if (face_token != "")
+							{
+								res_obj.vn_faces.push_back(atoi(cur_token.c_str()) - 1);
+							}
+						}
+						face_type++;
+					}
+				}
+			}
+		}
+		dest_model->push_back(res_obj);
+		obj_file.close();
+	}
+	return 0;
+}
+
+int LoadObjectFile(GL3DObj* dest_model, const char* path)
+{
+	std::ifstream obj_file(path, std::ios::in);
+	std::string obj_src;
 
 	if (obj_file.is_open())
 	{
@@ -49,11 +170,6 @@ int LoadObjectFile(GL3DObj *dest_model, const char *path)
 
 			if (cur_token == "v")
 			{
-				if (exist_v == false)
-				{
-					exist_v = true;
-				}
-
 				while (getline(line_stream, cur_token, ' '))
 				{
 					dest_model->positions.push_back(atof(cur_token.c_str()));
@@ -61,11 +177,6 @@ int LoadObjectFile(GL3DObj *dest_model, const char *path)
 			}
 			else if (cur_token == "vt")
 			{
-				if (exist_vt == false)
-				{
-					exist_vt = true;
-				}
-
 				while (getline(line_stream, cur_token, ' '))
 				{
 					dest_model->texels.push_back(atof(cur_token.c_str()));
@@ -73,11 +184,6 @@ int LoadObjectFile(GL3DObj *dest_model, const char *path)
 			}
 			else if (cur_token == "vn")
 			{
-				if (exist_vn == false)
-				{
-					exist_vn = true;
-				}
-
 				while (getline(line_stream, cur_token, ' '))
 				{
 					dest_model->normals.push_back(atof(cur_token.c_str()));
@@ -98,21 +204,21 @@ int LoadObjectFile(GL3DObj *dest_model, const char *path)
 						{
 							if (face_token != "")
 							{
-								dest_model->v_faces.push_back(atoi(cur_token.c_str()) -1);
+								dest_model->v_faces.push_back(atoi(cur_token.c_str()) - 1);
 							}
 						}
 						else if (face_type == kTexel)
 						{
 							if (face_token != "")
 							{
-								dest_model->vt_faces.push_back(atoi(cur_token.c_str()) -1);
+								dest_model->vt_faces.push_back(atoi(cur_token.c_str()) - 1);
 							}
 						}
 						else if (face_type == kNormal)
 						{
 							if (face_token != "")
 							{
-								dest_model->vn_faces.push_back(atoi(cur_token.c_str()) -1);
+								dest_model->vn_faces.push_back(atoi(cur_token.c_str()) - 1);
 							}
 						}
 
@@ -123,20 +229,6 @@ int LoadObjectFile(GL3DObj *dest_model, const char *path)
 		}
 		obj_file.close();
 	}
-
-	if (exist_v)
-	{
-		face_devide++;
-	}
-	if (exist_vt)
-	{
-		face_devide++;
-	}
-	if (exist_vn)
-	{
-		face_devide++;
-	}
-
 	return 0;
 }
 
@@ -247,7 +339,7 @@ int GLShader::SetGLAttribLocation(GLenum type, std::string attri_name)
 {
 	GLint tmp_loc = glGetAttribLocation(program, attri_name.c_str());
 
-	Log("key [%s] value[%d]",attri_name, tmp_loc);
+	Log("key [%s] value[%d]",attri_name.c_str(), tmp_loc);
 
 	if(type == GL_VERTEX_SHADER)
 	{
@@ -265,7 +357,7 @@ int GLShader::SetGLUniformLocation(GLenum type, std::string uniform_name)
 {
 	GLint tmp_uniform = glGetUniformLocation(program, uniform_name.c_str());
 
-	Log("key [%s] value[%d]", uniform_name, tmp_uniform);
+	Log("key [%s] value[%d]", uniform_name.c_str(), tmp_uniform);
 
 	if(type == GL_VERTEX_SHADER)
 	{

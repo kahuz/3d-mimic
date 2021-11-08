@@ -6,7 +6,7 @@
 #if DEBUG
 #ifdef WIN32
 #define Log( fmt, ...) printf("[%s : %d] " fmt "\n", __func__, __LINE__, __VA_ARGS__) 
-#define Err( fmt, ...) printf("Error ! " fmt "\n", __VA_ARGS__)
+#define Err( fmt, ...) printf("Error !" fmt "\n", __VA_ARGS__)
 #else
 #define Log( fmt, args...) printf("[%s : %d] " fmt "\n", __func__, __LINE__, ##args) 
 #define Err( fmt, args...) printf("Error ! " fmt "\n", ##args)

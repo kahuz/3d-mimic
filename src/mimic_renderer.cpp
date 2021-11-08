@@ -29,10 +29,14 @@ mat4x4 g_model_mat =
 
 mat4x4 g_view_mat =
 {
-    0.2f, 0.0f, 0.0f, 0.0f,
-    0.0f, 0.2f, 0.0f, 0.0f,
-    0.0f, 0.0f, 0.2f, 0.0f,
-    0.0f, 0.0f, 0.0f, 1.0f
+   //1.0f, 0.0f, 0.0f, 0.0f,
+   //0.0f, 1.0f, 0.0f, 0.0f,
+   //0.0f, 0.0f, 1.0f, 0.0f,
+   //0.0f, 0.0f, 0.0f, 1.0f
+   0.2f, 0.0f, 0.0f, 0.0f,
+   0.0f, 0.2f, 0.0f, 0.0f,
+   0.0f, 0.0f, 0.2f, 0.0f,
+   0.0f, 0.0f, 0.0f, 1.0f
 };
 
 GLushort g_bg_buf_idx[] = { 0, 1, 2, 0, 2, 3 };
@@ -156,7 +160,6 @@ void DrawBackGround()
 
     glUniform4f(bg_grid->vert_member.at("uGlobalColor"), 1.0f, 1.0f, 1.0f, 1.0f);
     glUniformMatrix4fv(bg_grid->vert_member.at("uProjection"), 1, GL_FALSE, (GLfloat *)g_proj_mat);
-
     glEnableVertexAttribArray(bg_grid->vert_member.at("aPosition"));
     glEnableVertexAttribArray(bg_grid->vert_member.at("aTexCoord"));
 
@@ -170,13 +173,9 @@ void DrawBackGround()
     glActiveTexture(GL_TEXTURE0);
 
     glBindTexture(GL_TEXTURE_2D, g_bg_info.tex_id);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, g_bg_info.img_width, g_bg_info.img_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, g_bg_info.img_data);
-    // Set the base map sampler to texture unit to 0
 
     glUniform1i(bg_grid->frag_member.at("uTexture0"), 0);
+
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, g_bg_buf_idx);
 }
 void MimicRender()
@@ -198,9 +197,9 @@ void MimicRender()
     bg_grid->SetGLAttribLocation(GL_VERTEX_SHADER, "aTexCoord");
     bg_grid->SetGLUniformLocation(GL_VERTEX_SHADER, "uGlobalColor");
     bg_grid->SetGLUniformLocation(GL_VERTEX_SHADER, "uProjection");
-    bg_grid->SetGLUniformLocation(GL_VERTEX_SHADER, "aPosition");
+    bg_grid->SetGLAttribLocation(GL_VERTEX_SHADER, "aPosition");
 
-    bg_grid->SetGLAttribLocation(GL_FRAGMENT_SHADER, "uTexture0");
+    bg_grid->SetGLUniformLocation(GL_FRAGMENT_SHADER, "uTexture0");
 
     my_gl->LoadShader(GL_VERTEX_SHADER, "../src/gl_shader/object.vshader");
     my_gl->LoadShader(GL_FRAGMENT_SHADER, "../src/gl_shader/object.fshader");
@@ -299,6 +298,7 @@ void MimicRender()
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_BLEND);
+        glBlendFunc(GL_ONE, GL_ONE);
         
         glViewport(0, 0, display_w, display_h);
         if (g_menu_load_model)
@@ -366,18 +366,20 @@ void MimicRender()
             glUniformMatrix4fv(my_gl->vert_member.at("uView"), 1, GL_FALSE, (GLfloat *)g_view_mat);
             glUniformMatrix4fv(my_gl->vert_member.at("uModel"), 1, GL_FALSE, (GLfloat *)g_model_mat);
 
-            glEnableVertexAttribArray(my_gl->vert_member.at("vPosition"));
-            glVertexAttribPointer(my_gl->vert_member.at("vPosition"), 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), &g_model.positions[0]);
+            for( auto obj_info : v_models)
+            {
+                glEnableVertexAttribArray(my_gl->vert_member.at("vPosition"));
+                glVertexAttribPointer(my_gl->vert_member.at("vPosition"), 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), &obj_info.positions[0]);
 
-            glLineWidth(3);
+                glLineWidth(3);
 
-            glDrawElements(GL_LINES, g_model.v_faces.size(), GL_UNSIGNED_INT, &g_model.v_faces[0]);
-
+                glDrawElements(GL_LINE_STRIP, obj_info.v_faces.size(), GL_UNSIGNED_INT, &obj_info.v_faces[0]);
+            }
             prev_x_pos = cur_x_pos;
             prev_y_pos = cur_y_pos;
-        }
-        DrawBackGround();
 
+        }
+       // DrawBackGround();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);
     }

@@ -18,6 +18,7 @@ bool g_menu_load_model = false;
 bool g_active_rotate = false;
 // FIXME :: remove under line !!!
 GL3DObj g_model;
+vector<GL3DObj> v_models;
 
 enum _EnableToolIdx {
     kMOVE = 0, //"../resource/icons/move_icon.png"
@@ -124,7 +125,9 @@ void DrawFileMenuBar()
 
         if (result == NFD_OKAY)
         {
-            LoadObjectFile(&g_model, outPath);
+            //LoadObjectFile(&g_model, outPath);
+            LoadObjectsFile(&v_models, outPath);
+            
             g_menu_load_model = true;
             free(outPath);
         }
