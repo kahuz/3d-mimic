@@ -72,15 +72,15 @@ int LoadObjectsFile(std::vector<GL3DObj> *dest_model, const char* path)
 
 			if (cur_token == "o")
 			{
-				if (is_first_obj == false)
-				{
-					dest_model->push_back(res_obj);
-					res_obj.ClearObj();
-				}
-				else
-				{
-					is_first_obj = false;
-				}
+				//if (is_first_obj == false)
+				//{
+				//	dest_model->push_back(res_obj);
+				//	res_obj.ClearObj();
+				//}
+				//else
+				//{
+				//	is_first_obj = false;
+				//}
 			}
 			else if (cur_token == "v")
 			{

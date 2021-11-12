@@ -28,7 +28,7 @@ typedef struct GL3DObj
 	//MTLInfo mtl_info;
 	
     std::vector<GLfloat> positions, texels, normals;
-	std::vector<int> v_faces, vt_faces, vn_faces;
+	std::vector<unsigned int> v_faces, vt_faces, vn_faces;
 
 	bool smooth_shading = false;
 

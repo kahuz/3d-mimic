@@ -29,13 +29,9 @@ mat4x4 g_model_mat =
 
 mat4x4 g_view_mat =
 {
-   //1.0f, 0.0f, 0.0f, 0.0f,
-   //0.0f, 1.0f, 0.0f, 0.0f,
-   //0.0f, 0.0f, 1.0f, 0.0f,
-   //0.0f, 0.0f, 0.0f, 1.0f
-   0.2f, 0.0f, 0.0f, 0.0f,
-   0.0f, 0.2f, 0.0f, 0.0f,
-   0.0f, 0.0f, 0.2f, 0.0f,
+   0.4f, 0.0f, 0.0f, 0.0f,
+   0.0f, 0.4f, 0.0f, 0.0f,
+   0.0f, 0.0f, 0.4f, 0.0f,
    0.0f, 0.0f, 0.0f, 1.0f
 };
 
@@ -52,6 +48,20 @@ GLfloat g_bg_buf[] = {
     1.0f,  0.0f         // TexCoord 3
 };
 
+void TransformScale(float scale_x, float scale_y, float scale_z)
+{
+	if (scale_x > 1.0 || scale_y > 1.0 || scale_z > 1.0)
+	{
+		cout << "overflow scale value" << endl;
+		return;
+	}
+	else
+	{
+		g_view_mat[0][0] = scale_x;
+		g_view_mat[1][1] = scale_y;
+		g_view_mat[2][2] = scale_z;
+	}
+}
 // FIXME:: rename function
 void RotateWithPos(ImVec2 pos)
 {
@@ -122,7 +132,7 @@ bool InitRenderContext()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 
     // Create window with graphics context
-    window = glfwCreateWindow(640, 640, "Dear ImGui GLFW+OpenGL3 example", NULL, NULL);
+    window = glfwCreateWindow(1280, 720, "Dear ImGui GLFW+OpenGL3 example", NULL, NULL);
     if (window == NULL)
     {
         return false;
@@ -234,6 +244,7 @@ void MimicRender()
         static int x = 0, y = 0, frame_num = 0;
         static float angle = 90, cur_x_pos = 0, prev_x_pos = 0, cur_y_pos = 0, prev_y_pos = 0;
         static float angle_x = 0.0f, angle_y = 0.0f;
+		static float scale_x = 0.4f, scale_y = 0.4f, scale_z = 0.4f;
         int mouse_state = 0; // 0 release, 1 press
 
         ImGuiIO& io = ImGui::GetIO();
@@ -245,7 +256,10 @@ void MimicRender()
             ImGui::Checkbox("Demo Window", &show_demo_window); // Edit bools storing our window open/close state
             ImGui::Checkbox("Another Window", &show_another_window);
 
-            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);             // Edit 1 float using a slider from 0.0f to 1.0f
+			ImGui::SliderFloat("float", &f, 0.0f, 1.0f);             // Edit 1 float using a slider from 0.0f to 1.0f
+			ImGui::SliderFloat("scale trans X", &scale_x, 0.0f, 1.0f);             // Edit 1 float using a slider from 0.0f to 1.0f
+			ImGui::SliderFloat("scale trans Y", &scale_y, 0.0f, 1.0f);             // Edit 1 float using a slider from 0.0f to 1.0f
+			ImGui::SliderFloat("scale trans Z", &scale_z, 0.0f, 1.0f);             // Edit 1 float using a slider from 0.0f to 1.0f
             ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
 
             if (ImGui::Button("Button")) // Buttons return true when clicked (most widgets return true when edited/activated)
@@ -358,18 +372,20 @@ void MimicRender()
             };
 
             mat4x4_mul(g_model_mat, mRotate_X_Mat, mRotate_Y_Mat);
+			TransformScale(scale_x, scale_y, scale_z);
             //linmath test
 
-            glUseProgram(my_gl->program);
-
-            glUniformMatrix4fv(my_gl->vert_member.at("uProjection"), 1, GL_FALSE, (GLfloat *)g_proj_mat);
-            glUniformMatrix4fv(my_gl->vert_member.at("uView"), 1, GL_FALSE, (GLfloat *)g_view_mat);
-            glUniformMatrix4fv(my_gl->vert_member.at("uModel"), 1, GL_FALSE, (GLfloat *)g_model_mat);
 
             for( auto obj_info : v_models)
             {
+				glUseProgram(my_gl->program);
+
+				glUniformMatrix4fv(my_gl->vert_member.at("uProjection"), 1, GL_FALSE, (GLfloat *)g_proj_mat);
+				glUniformMatrix4fv(my_gl->vert_member.at("uView"), 1, GL_FALSE, (GLfloat *)g_view_mat);
+				glUniformMatrix4fv(my_gl->vert_member.at("uModel"), 1, GL_FALSE, (GLfloat *)g_model_mat);
+
                 glEnableVertexAttribArray(my_gl->vert_member.at("vPosition"));
-                glVertexAttribPointer(my_gl->vert_member.at("vPosition"), 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), &obj_info.positions[0]);
+                glVertexAttribPointer(my_gl->vert_member.at("vPosition"), 3, GL_FLOAT, GL_FALSE, 0, &obj_info.positions[0]);
 
                 glLineWidth(3);
 
