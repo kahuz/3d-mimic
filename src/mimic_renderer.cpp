@@ -48,6 +48,17 @@ GLfloat g_bg_buf[] = {
     1.0f,  0.0f         // TexCoord 3
 };
 
+#define PI 3.141592653
+
+float Deg2Rad(float degree)
+{
+    return degree * PI / 180;
+}
+
+void Transpose(mat4x4 src, float move_x, float move_y, float move_z)
+{
+
+}
 void TransformScale(float scale_x, float scale_y, float scale_z)
 {
 	if (scale_x > 1.0 || scale_y > 1.0 || scale_z > 1.0)
@@ -57,59 +68,12 @@ void TransformScale(float scale_x, float scale_y, float scale_z)
 	}
 	else
 	{
-		g_view_mat[0][0] = scale_x;
-		g_view_mat[1][1] = scale_y;
-		g_view_mat[2][2] = scale_z;
+        mat4x4_scale_aniso(g_model_mat, g_model_mat, scale_x, scale_y, scale_z);
 	}
 }
-// FIXME:: rename function
+// FIXME:: added function
 void RotateWithPos(ImVec2 pos)
 {
-    //cur_x_pos = io.MousePos.x;
-    //cur_y_pos = io.MousePos.y;
-    //
-    //if (cur_x_pos != prev_x_pos)
-    //{
-    //    angle_x += std::fmod((cur_x_pos - prev_x_pos), 360.0f) / 20;
-    //
-    //    if (angle_x > 360.0f || angle_x < -360.0f)
-    //    {
-    //        angle_x = 0.0f;
-    //    }
-    //}
-    //if (cur_y_pos != prev_y_pos)
-    //{
-    //    angle_y += std::fmod((cur_y_pos - prev_y_pos), 360.0f) / 20;
-    //
-    //    if (angle_y > 360.0f || angle_y < -360.0f)
-    //    {
-    //        angle_y = 0.0f;
-    //    }
-    //}
-    //
-    //float x_s = sinf(angle_y);
-    //float x_c = cosf(angle_y);
-    //
-    //float y_s = sinf(angle_x);
-    //float y_c = cosf(angle_x);
-    //
-    //mat4x4 mRotate_X_Mat =
-    //{
-    //    1.f, 0.f, 0.f, 0.f,
-    //    0.f,   x_c,   x_s, 0.f,
-    //    0.f,  -x_s,   x_c, 0.f,
-    //    0.f, 0.f, 0.f, 1.f
-    //};
-    //
-    //mat4x4 mRotate_Y_Mat =
-    //{
-    //    y_c, 0.f,  -y_s, 0.f,
-    //     0.f, 1.f, 0.f, 0.f,
-    //       y_s, 0.f,   y_c, 0.f,
-    //     0.f, 0.f, 0.f, 1.f
-    //};
-    //
-    //mat4x4_mul(g_model_mat, mRotate_X_Mat, mRotate_Y_Mat);
 }
 
 static void glfw_error_callback(int error, const char* description)
@@ -193,9 +157,19 @@ void MimicRender()
     InitRenderContext();
     InitUI();
 
-    bool show_demo_window = true;
-    bool show_another_window = false;
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+    ImVec4 background_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+    ImVec4 obj_color = ImVec4(1.0f, 1.0f, 0.0f, 1.00f);
+    ImVec4 light_color = ImVec4(1.0f, 1.0f, 1.0f, 1.00f);
+
+    static int x = 0, y = 0, frame_num = 0;
+    static float angle = 90, cur_x_pos = 0, prev_x_pos = 0, cur_y_pos = 0, prev_y_pos = 0;
+    static float angle_x = 0.0f, angle_y = 0.0f;
+    static float scale_x = 0.4f, scale_y = 0.4f, scale_z = 0.4f;
+    static float eye_x = 1.0f, eye_y = 1.0f, eye_z = 0.0f;
+    static float center_x = 0.0f, center_y = 0.0f, center_z = 0.0f;
+    static float up_x = 0.0f, up_y = 1.0f, up_z = 0.0f;
+    static float ambient_value = 1.0f;
+    int mouse_state = 0; // 0 release, 1 press
 
     my_gl = new GLShader();
     bg_grid = new GLShader();
@@ -203,25 +177,36 @@ void MimicRender()
     bg_grid->LoadShader(GL_VERTEX_SHADER, "../src/gl_shader/texture.vshader");
     bg_grid->LoadShader(GL_FRAGMENT_SHADER, "../src/gl_shader/texture.fshader");
     bg_grid->LinkShaders();
-    //set vertex Attribute vPosition
+
+    // bg_grid Vertex Shader Initialize
+    bg_grid->SetGLAttribLocation(GL_VERTEX_SHADER, "aPosition");
     bg_grid->SetGLAttribLocation(GL_VERTEX_SHADER, "aTexCoord");
+
     bg_grid->SetGLUniformLocation(GL_VERTEX_SHADER, "uGlobalColor");
     bg_grid->SetGLUniformLocation(GL_VERTEX_SHADER, "uProjection");
-    bg_grid->SetGLAttribLocation(GL_VERTEX_SHADER, "aPosition");
 
+    // bg_grid Fragment Shader Initialize
     bg_grid->SetGLUniformLocation(GL_FRAGMENT_SHADER, "uTexture0");
 
     my_gl->LoadShader(GL_VERTEX_SHADER, "../src/gl_shader/object.vshader");
     my_gl->LoadShader(GL_FRAGMENT_SHADER, "../src/gl_shader/object.fshader");
     my_gl->LinkShaders();
-    //set vertex Attribute vPosition
-    my_gl->SetGLAttribLocation(GL_VERTEX_SHADER, "vPosition");
+
+    // my_gl Vertex Shader Initialize
+    my_gl->SetGLAttribLocation(GL_VERTEX_SHADER, "aPosition");
+    my_gl->SetGLAttribLocation(GL_VERTEX_SHADER, "aNormal");
+    my_gl->SetGLAttribLocation(GL_VERTEX_SHADER, "aTexCoord");
+    
     my_gl->SetGLUniformLocation(GL_VERTEX_SHADER, "uProjection");
     my_gl->SetGLUniformLocation(GL_VERTEX_SHADER, "uModel");
     my_gl->SetGLUniformLocation(GL_VERTEX_SHADER, "uView");
 
-    static float f = 0.0f;
-    static int counter = 0;
+    my_gl->SetGLUniformLocation(GL_VERTEX_SHADER, "uModelTransform");
+    // my_gl Fragment Shader Initialize
+    my_gl->SetGLUniformLocation(GL_FRAGMENT_SHADER, "uLightPosition");
+    my_gl->SetGLUniformLocation(GL_FRAGMENT_SHADER, "uLightColor");
+    my_gl->SetGLUniformLocation(GL_FRAGMENT_SHADER, "uObjectColor");
+    my_gl->SetGLUniformLocation(GL_FRAGMENT_SHADER, "uAmbientStrength");
 
     // Main loop
     while (!glfwWindowShouldClose(window))
@@ -241,34 +226,36 @@ void MimicRender()
         DrawToolBar();
         DrawMenuBar();
 
-        static int x = 0, y = 0, frame_num = 0;
-        static float angle = 90, cur_x_pos = 0, prev_x_pos = 0, cur_y_pos = 0, prev_y_pos = 0;
-        static float angle_x = 0.0f, angle_y = 0.0f;
-		static float scale_x = 0.4f, scale_y = 0.4f, scale_z = 0.4f;
-        int mouse_state = 0; // 0 release, 1 press
 
         ImGuiIO& io = ImGui::GetIO();
         // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
         {
-            ImGui::Begin("Hello, world!"); // Create a window called "Hello, world!" and append into it.
 
-            ImGui::Text("This is some useful text.");          // Display some text (you can use a format strings too)
-            ImGui::Checkbox("Demo Window", &show_demo_window); // Edit bools storing our window open/close state
-            ImGui::Checkbox("Another Window", &show_another_window);
-
-			ImGui::SliderFloat("float", &f, 0.0f, 1.0f);             // Edit 1 float using a slider from 0.0f to 1.0f
-			ImGui::SliderFloat("scale trans X", &scale_x, 0.0f, 1.0f);             // Edit 1 float using a slider from 0.0f to 1.0f
-			ImGui::SliderFloat("scale trans Y", &scale_y, 0.0f, 1.0f);             // Edit 1 float using a slider from 0.0f to 1.0f
-			ImGui::SliderFloat("scale trans Z", &scale_z, 0.0f, 1.0f);             // Edit 1 float using a slider from 0.0f to 1.0f
-            ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-
-            if (ImGui::Button("Button")) // Buttons return true when clicked (most widgets return true when edited/activated)
-                counter++;
-
-            ImGui::SameLine();
-            ImGui::Text("counter = %d", counter);
+            ImGui::Begin("Renderer Settings"); // Create a window called "Hello, world!" and append into it.
 
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+
+            ImGui::PushItemWidth(200.0f);
+            ImGui::SliderFloat("Scale trans X ", &scale_x, 0.0f, 1.0f); ImGui::SameLine();            // Edit 1 float using a slider from 0.0f to 1.0f
+			ImGui::SliderFloat("Scale trans Y ", &scale_y, 0.0f, 1.0f); ImGui::SameLine();             // Edit 1 float using a slider from 0.0f to 1.0f
+			ImGui::SliderFloat("Scale trans Z ", &scale_z, 0.0f, 1.0f);             // Edit 1 float using a slider from 0.0f to 1.0f
+
+            ImGui::SliderFloat("Eye trans X   ", &eye_x, -2.0f, 2.0f); ImGui::SameLine();            // Edit 1 float using a slider from 0.0f to 1.0f
+            ImGui::SliderFloat("Eye trans Y   ", &eye_y, -2.0f, 2.0f); ImGui::SameLine();             // Edit 1 float using a slider from 0.0f to 1.0f
+            ImGui::SliderFloat("Eye trans Z   ", &eye_z, -2.0f, 2.0f);             // Edit 1 float using a slider from 0.0f to 1.0f
+
+            ImGui::SliderFloat("Center trans X", &center_x, -2.0f, 2.0f); ImGui::SameLine();            // Edit 1 float using a slider from 0.0f to 1.0f
+            ImGui::SliderFloat("Center trans Y", &center_y, -2.0f, 2.0f); ImGui::SameLine();             // Edit 1 float using a slider from 0.0f to 1.0f
+            ImGui::SliderFloat("Center trans Z", &center_z, -2.0f, 2.0f);             // Edit 1 float using a slider from 0.0f to 1.0f
+
+            ImGui::SliderFloat("Up Vec trans X", &up_x, -2.0f, 2.0f); ImGui::SameLine();            // Edit 1 float using a slider from 0.0f to 1.0f
+            ImGui::SliderFloat("Up Vec trans Y", &up_y, -2.0f, 2.0f); ImGui::SameLine();             // Edit 1 float using a slider from 0.0f to 1.0f
+            ImGui::SliderFloat("Up Vec trans Z", &up_z, -2.0f, 2.0f);             // Edit 1 float using a slider from 0.0f to 1.0f
+            ImGui::PopItemWidth();
+            ImGui::ColorEdit3("background color", (float*)&background_color); // Edit 3 floats representing a color
+            ImGui::ColorEdit3("  object color  ", (float*)&obj_color); // Edit 3 floats representing a color
+            ImGui::ColorEdit3("   light color  ", (float*)&light_color); // Edit 3 floats representing a color
+            ImGui::SliderFloat(" Ambient value ", &ambient_value, 0.0f, 1.0f);
 
             for (int i = 0; i < IM_ARRAYSIZE(io.MouseDown); i++)
             {
@@ -288,19 +275,7 @@ void MimicRender()
 
             std::string mouse_state_str = mouse_state ? "Clicked" : "Released";
             ImGui::Text("Mouse state %s", mouse_state_str.c_str());
-            ImGui::Text("angle x %f", angle_x);
-            ImGui::Text("angle y %f", angle_y);
 
-            ImGui::End();
-        }
-
-        // 3. Show another simple window.
-        if (show_another_window)
-        {
-            ImGui::Begin("Another Window", &show_another_window); // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-            ImGui::Text("Hello from another window!");
-            if (ImGui::Button("Close Me"))
-                show_another_window = false;
             ImGui::End();
         }
 
@@ -308,13 +283,12 @@ void MimicRender()
         ImGui::Render();
         int display_w, display_h;
         glfwGetFramebufferSize(window, &display_w, &display_h); 
-        glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
+        glClearColor(background_color.x * background_color.w, background_color.y * background_color.w, background_color.z * background_color.w, background_color.w);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_ONE, GL_ONE);
+        //glEnable(GL_BLEND);
+        //glBlendFunc(GL_ONE, GL_ONE);
         
-        glViewport(0, 0, display_w, display_h);
         if (g_menu_load_model)
         {
             frame_num++;
@@ -375,21 +349,34 @@ void MimicRender()
 			TransformScale(scale_x, scale_y, scale_z);
             //linmath test
 
+            vec3 m_eye = { eye_x ,eye_y, eye_z };
+            vec3 m_center = { center_x ,center_y, center_z };
+            vec3 m_up = { up_x ,up_y, up_z };
+
+            mat4x4_perspective(g_proj_mat, Deg2Rad(90),(float)display_w/(float)display_h, 0.1f, 100.0f);
+            mat4x4_look_at(g_view_mat, m_eye, m_center, m_up);
+
+            GLfloat m_light_color[3] = { light_color.x , light_color.y , light_color.z };
+            GLfloat m_object_color[3] = { obj_color.x , obj_color.y , obj_color.z };
 
             for( auto obj_info : v_models)
             {
 				glUseProgram(my_gl->program);
 
+                glUniform1f(my_gl->frag_member.at("uAmbientStrength"), (GLfloat)ambient_value);
+                glUniform3fv(my_gl->frag_member.at("uLightColor"), 1, m_light_color);
+                glUniform3fv(my_gl->frag_member.at("uObjectColor"), 1, m_object_color);
+
 				glUniformMatrix4fv(my_gl->vert_member.at("uProjection"), 1, GL_FALSE, (GLfloat *)g_proj_mat);
 				glUniformMatrix4fv(my_gl->vert_member.at("uView"), 1, GL_FALSE, (GLfloat *)g_view_mat);
 				glUniformMatrix4fv(my_gl->vert_member.at("uModel"), 1, GL_FALSE, (GLfloat *)g_model_mat);
 
-                glEnableVertexAttribArray(my_gl->vert_member.at("vPosition"));
-                glVertexAttribPointer(my_gl->vert_member.at("vPosition"), 3, GL_FLOAT, GL_FALSE, 0, &obj_info.positions[0]);
+                glEnableVertexAttribArray(my_gl->vert_member.at("aPosition"));
+                glVertexAttribPointer(my_gl->vert_member.at("aPosition"), 3, GL_FLOAT, GL_FALSE, 0, &obj_info.positions[0]);
 
                 glLineWidth(3);
 
-                glDrawElements(GL_LINE_STRIP, obj_info.v_faces.size(), GL_UNSIGNED_INT, &obj_info.v_faces[0]);
+                glDrawElements(GL_TRIANGLES, obj_info.v_faces.size(), GL_UNSIGNED_INT, &obj_info.v_faces[0]);
             }
             prev_x_pos = cur_x_pos;
             prev_y_pos = cur_y_pos;
