@@ -13,10 +13,10 @@ uniform float uAmbientStrength;
 void main()
 {
 	vec3 ambient = uAmbientStrength * uLightColor;
-	//vec3 lightDirection = normalize(uLightPosition - vObjPosition);
-	//vec3 pixelNormal = normalize(vNormal);
-	//vec3 diffuse = max(dot(pixelNormal, lightDirection), 0.0) * uLightColor;
-	vec3 result = ambient * uObjectColor;
-	
-  gl_FragColor = vec4 (result, 1.0 );
+	vec3 lightDirection = normalize(uLightPosition - vObjPosition);
+	vec3 pixelNormal = normalize(vNormal);
+	vec3 diffuse = max(dot(pixelNormal, lightDirection), 0.0) * uLightColor;
+	vec3 result = (ambient + diffuse) * uObjectColor;
+
+	gl_FragColor = vec4(result, 1.0);
 }

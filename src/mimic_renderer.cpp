@@ -8,10 +8,34 @@ using namespace std;
 
 static GLFWwindow *window = NULL;
 //init GLSL Program
-GLShader* my_gl;
-GLShader* bg_grid;
+GLShader* obj_shader;
+GLShader* bg_shader;
+GLShader* light_shader;
 
-mat4x4 g_proj_mat =
+mat4x4 g_obj_proj_mat =
+{
+	1.0f, 0.0f, 0.0f, 0.0f,
+	0.0f, 1.0f, 0.0f, 0.0f,
+	0.0f, 0.0f, 1.0f, 0.0f,
+	0.0f, 0.0f, 0.0f, 1.0f
+};
+
+mat4x4 g_obj_model_mat =
+{
+	1.0f, 0.0f, 0.0f, 0.0f,
+	0.0f, 1.0f, 0.0f, 0.0f,
+	0.0f, 0.0f, 1.0f, 0.0f,
+	0.0f, 0.0f, 0.0f, 1.0f
+};
+
+mat4x4 g_obj_view_mat =
+{
+   0.4f, 0.0f, 0.0f, 0.0f,
+   0.0f, 0.4f, 0.0f, 0.0f,
+   0.0f, 0.0f, 0.4f, 0.0f,
+   0.0f, 0.0f, 0.0f, 1.0f
+};
+mat4x4 g_light_proj_mat =
 {
     1.0f, 0.0f, 0.0f, 0.0f,
     0.0f, 1.0f, 0.0f, 0.0f,
@@ -19,7 +43,7 @@ mat4x4 g_proj_mat =
     0.0f, 0.0f, 0.0f, 1.0f
 }; 
 
-mat4x4 g_model_mat =
+mat4x4 g_light_model_mat =
 {
     1.0f, 0.0f, 0.0f, 0.0f,
     0.0f, 1.0f, 0.0f, 0.0f,
@@ -27,7 +51,7 @@ mat4x4 g_model_mat =
     0.0f, 0.0f, 0.0f, 1.0f
 };
 
-mat4x4 g_view_mat =
+mat4x4 g_light_view_mat =
 {
    0.4f, 0.0f, 0.0f, 0.0f,
    0.0f, 0.4f, 0.0f, 0.0f,
@@ -55,11 +79,16 @@ float Deg2Rad(float degree)
     return degree * PI / 180;
 }
 
-void Transpose(mat4x4 src, float move_x, float move_y, float move_z)
+// 조명에 사용할 normal matrix를 위해 src_matrix에 대한 inverse_matrix를 생성한다
+// 조명을 위해 사용할 때는 model matrix에 대해 inverse_matrix를 생성하고, 이를 normal vector와 곱하여
+// 최종적으로는 normal_matrix를 사용하게 된다
+// see more : http://www.lighthouse3d.com/tutorials/glsl-12-tutorial/the-normal-matrix/
+void CreateInverseMatrix(mat4x4 src_matrix, mat4x4 inverse_matrix)
 {
-
+	mat4x4_invert(inverse_matrix, src_matrix);
+	mat4x4_transpose(inverse_matrix, inverse_matrix);
 }
-void TransformScale(float scale_x, float scale_y, float scale_z)
+void TransformScale(mat4x4 src_matrix, float scale_x, float scale_y, float scale_z)
 {
 	if (scale_x > 1.0 || scale_y > 1.0 || scale_z > 1.0)
 	{
@@ -68,12 +97,35 @@ void TransformScale(float scale_x, float scale_y, float scale_z)
 	}
 	else
 	{
-        mat4x4_scale_aniso(g_model_mat, g_model_mat, scale_x, scale_y, scale_z);
+        mat4x4_scale_aniso(src_matrix, src_matrix, scale_x, scale_y, scale_z);
 	}
 }
-// FIXME:: added function
-void RotateWithPos(ImVec2 pos)
+
+void RotateWithPos(mat4x4 src_matrix, float angle_x, float angle_y)
 {
+	float x_s = sinf(angle_y);
+	float x_c = cosf(angle_y);
+
+	float y_s = sinf(angle_x);
+	float y_c = cosf(angle_x);
+
+	mat4x4 mRotate_X_Mat =
+	{
+		1.f, 0.f, 0.f, 0.f,
+		0.f,   x_c,   x_s, 0.f,
+		0.f,  -x_s,   x_c, 0.f,
+		0.f, 0.f, 0.f, 1.f
+	};
+
+	mat4x4 mRotate_Y_Mat =
+	{
+		y_c, 0.f,  -y_s, 0.f,
+		 0.f, 1.f, 0.f, 0.f,
+		   y_s, 0.f,   y_c, 0.f,
+		 0.f, 0.f, 0.f, 1.f
+	};
+
+	mat4x4_mul(src_matrix, mRotate_X_Mat, mRotate_Y_Mat);
 }
 
 static void glfw_error_callback(int error, const char* description)
@@ -130,25 +182,25 @@ bool InitRenderContext()
 
 void DrawBackGround()
 {
-    glUseProgram(bg_grid->program);
+    glUseProgram(bg_shader->program);
 
-    glUniform4f(bg_grid->vert_member.at("uGlobalColor"), 1.0f, 1.0f, 1.0f, 1.0f);
-    glUniformMatrix4fv(bg_grid->vert_member.at("uProjection"), 1, GL_FALSE, (GLfloat *)g_proj_mat);
-    glEnableVertexAttribArray(bg_grid->vert_member.at("aPosition"));
-    glEnableVertexAttribArray(bg_grid->vert_member.at("aTexCoord"));
+    glUniform4f(bg_shader->vert_member.at("uGlobalColor"), 1.0f, 1.0f, 1.0f, 1.0f);
+    glUniformMatrix4fv(bg_shader->vert_member.at("uProjection"), 1, GL_FALSE, (GLfloat *)g_obj_proj_mat);
+    glEnableVertexAttribArray(bg_shader->vert_member.at("aPosition"));
+    glEnableVertexAttribArray(bg_shader->vert_member.at("aTexCoord"));
 
     // Load the vertex position
-    glVertexAttribPointer(bg_grid->vert_member.at("aPosition"), 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), g_bg_buf);
+    glVertexAttribPointer(bg_shader->vert_member.at("aPosition"), 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), g_bg_buf);
 
     // Load the texture coordinate
-    glVertexAttribPointer(bg_grid->vert_member.at("aTexCoord"), 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), &g_bg_buf[3]);
+    glVertexAttribPointer(bg_shader->vert_member.at("aTexCoord"), 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), &g_bg_buf[3]);
 
     // Bind the base map
     glActiveTexture(GL_TEXTURE0);
 
     glBindTexture(GL_TEXTURE_2D, g_bg_info.tex_id);
 
-    glUniform1i(bg_grid->frag_member.at("uTexture0"), 0);
+    glUniform1i(bg_shader->frag_member.at("uTexture0"), 0);
 
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, g_bg_buf_idx);
 }
@@ -171,42 +223,42 @@ void MimicRender()
     static float ambient_value = 1.0f;
     int mouse_state = 0; // 0 release, 1 press
 
-    my_gl = new GLShader();
-    bg_grid = new GLShader();
+    obj_shader = new GLShader();
+    bg_shader = new GLShader();
 
-    bg_grid->LoadShader(GL_VERTEX_SHADER, "../src/gl_shader/texture.vshader");
-    bg_grid->LoadShader(GL_FRAGMENT_SHADER, "../src/gl_shader/texture.fshader");
-    bg_grid->LinkShaders();
+    bg_shader->LoadShader(GL_VERTEX_SHADER, "../src/gl_shader/texture.vshader");
+    bg_shader->LoadShader(GL_FRAGMENT_SHADER, "../src/gl_shader/texture.fshader");
+    bg_shader->LinkShaders();
 
-    // bg_grid Vertex Shader Initialize
-    bg_grid->SetGLAttribLocation(GL_VERTEX_SHADER, "aPosition");
-    bg_grid->SetGLAttribLocation(GL_VERTEX_SHADER, "aTexCoord");
+    // bg_shader Vertex Shader Initialize
+    bg_shader->SetGLAttribLocation(GL_VERTEX_SHADER, "aPosition");
+    bg_shader->SetGLAttribLocation(GL_VERTEX_SHADER, "aTexCoord");
 
-    bg_grid->SetGLUniformLocation(GL_VERTEX_SHADER, "uGlobalColor");
-    bg_grid->SetGLUniformLocation(GL_VERTEX_SHADER, "uProjection");
+    bg_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uGlobalColor");
+    bg_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uProjection");
 
-    // bg_grid Fragment Shader Initialize
-    bg_grid->SetGLUniformLocation(GL_FRAGMENT_SHADER, "uTexture0");
+    // bg_shader Fragment Shader Initialize
+    bg_shader->SetGLUniformLocation(GL_FRAGMENT_SHADER, "uTexture0");
 
-    my_gl->LoadShader(GL_VERTEX_SHADER, "../src/gl_shader/object.vshader");
-    my_gl->LoadShader(GL_FRAGMENT_SHADER, "../src/gl_shader/object.fshader");
-    my_gl->LinkShaders();
+    obj_shader->LoadShader(GL_VERTEX_SHADER, "../src/gl_shader/object.vshader");
+    obj_shader->LoadShader(GL_FRAGMENT_SHADER, "../src/gl_shader/object.fshader");
+    obj_shader->LinkShaders();
 
-    // my_gl Vertex Shader Initialize
-    my_gl->SetGLAttribLocation(GL_VERTEX_SHADER, "aPosition");
-    my_gl->SetGLAttribLocation(GL_VERTEX_SHADER, "aNormal");
-    my_gl->SetGLAttribLocation(GL_VERTEX_SHADER, "aTexCoord");
+    // obj_shader Vertex Shader Initialize
+    obj_shader->SetGLAttribLocation(GL_VERTEX_SHADER, "aPosition");
+    obj_shader->SetGLAttribLocation(GL_VERTEX_SHADER, "aNormal");
+    obj_shader->SetGLAttribLocation(GL_VERTEX_SHADER, "aTexCoord");
     
-    my_gl->SetGLUniformLocation(GL_VERTEX_SHADER, "uProjection");
-    my_gl->SetGLUniformLocation(GL_VERTEX_SHADER, "uModel");
-    my_gl->SetGLUniformLocation(GL_VERTEX_SHADER, "uView");
+    obj_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uProjection");
+    obj_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uModel");
+    obj_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uView");
 
-    my_gl->SetGLUniformLocation(GL_VERTEX_SHADER, "uModelTransform");
-    // my_gl Fragment Shader Initialize
-    my_gl->SetGLUniformLocation(GL_FRAGMENT_SHADER, "uLightPosition");
-    my_gl->SetGLUniformLocation(GL_FRAGMENT_SHADER, "uLightColor");
-    my_gl->SetGLUniformLocation(GL_FRAGMENT_SHADER, "uObjectColor");
-    my_gl->SetGLUniformLocation(GL_FRAGMENT_SHADER, "uAmbientStrength");
+    obj_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uModelTransform");
+    // obj_shader Fragment Shader Initialize
+    obj_shader->SetGLUniformLocation(GL_FRAGMENT_SHADER, "uLightPosition");
+    obj_shader->SetGLUniformLocation(GL_FRAGMENT_SHADER, "uLightColor");
+    obj_shader->SetGLUniformLocation(GL_FRAGMENT_SHADER, "uObjectColor");
+    obj_shader->SetGLUniformLocation(GL_FRAGMENT_SHADER, "uAmbientStrength");
 
     // Main loop
     while (!glfwWindowShouldClose(window))
@@ -323,56 +375,34 @@ void MimicRender()
                 }
             }
 
-            float x_s = sinf(angle_y);
-            float x_c = cosf(angle_y);
-
-            float y_s = sinf(angle_x);
-            float y_c = cosf(angle_x);
-
-            mat4x4 mRotate_X_Mat =
-            {
-                1.f, 0.f, 0.f, 0.f,
-                0.f,   x_c,   x_s, 0.f,
-                0.f,  -x_s,   x_c, 0.f,
-                0.f, 0.f, 0.f, 1.f
-            };
-
-            mat4x4 mRotate_Y_Mat =
-            {
-                y_c, 0.f,  -y_s, 0.f,
-                 0.f, 1.f, 0.f, 0.f,
-                   y_s, 0.f,   y_c, 0.f,
-                 0.f, 0.f, 0.f, 1.f
-            };
-
-            mat4x4_mul(g_model_mat, mRotate_X_Mat, mRotate_Y_Mat);
-			TransformScale(scale_x, scale_y, scale_z);
+			RotateWithPos(g_obj_model_mat, angle_x, angle_y);
+			TransformScale(g_obj_model_mat, scale_x, scale_y, scale_z);
             //linmath test
 
             vec3 m_eye = { eye_x ,eye_y, eye_z };
             vec3 m_center = { center_x ,center_y, center_z };
             vec3 m_up = { up_x ,up_y, up_z };
 
-            mat4x4_perspective(g_proj_mat, Deg2Rad(90),(float)display_w/(float)display_h, 0.1f, 100.0f);
-            mat4x4_look_at(g_view_mat, m_eye, m_center, m_up);
+            mat4x4_perspective(g_obj_proj_mat, Deg2Rad(90),(float)display_w/(float)display_h, 0.1f, 100.0f);
+            mat4x4_look_at(g_obj_view_mat, m_eye, m_center, m_up);
 
             GLfloat m_light_color[3] = { light_color.x , light_color.y , light_color.z };
             GLfloat m_object_color[3] = { obj_color.x , obj_color.y , obj_color.z };
 
             for( auto obj_info : v_models)
             {
-				glUseProgram(my_gl->program);
+				glUseProgram(obj_shader->program);
 
-                glUniform1f(my_gl->frag_member.at("uAmbientStrength"), (GLfloat)ambient_value);
-                glUniform3fv(my_gl->frag_member.at("uLightColor"), 1, m_light_color);
-                glUniform3fv(my_gl->frag_member.at("uObjectColor"), 1, m_object_color);
+                glUniform1f(obj_shader->frag_member.at("uAmbientStrength"), (GLfloat)ambient_value);
+                glUniform3fv(obj_shader->frag_member.at("uLightColor"), 1, m_light_color);
+                glUniform3fv(obj_shader->frag_member.at("uObjectColor"), 1, m_object_color);
 
-				glUniformMatrix4fv(my_gl->vert_member.at("uProjection"), 1, GL_FALSE, (GLfloat *)g_proj_mat);
-				glUniformMatrix4fv(my_gl->vert_member.at("uView"), 1, GL_FALSE, (GLfloat *)g_view_mat);
-				glUniformMatrix4fv(my_gl->vert_member.at("uModel"), 1, GL_FALSE, (GLfloat *)g_model_mat);
+				glUniformMatrix4fv(obj_shader->vert_member.at("uProjection"), 1, GL_FALSE, (GLfloat *)g_obj_proj_mat);
+				glUniformMatrix4fv(obj_shader->vert_member.at("uView"), 1, GL_FALSE, (GLfloat *)g_obj_view_mat);
+				glUniformMatrix4fv(obj_shader->vert_member.at("uModel"), 1, GL_FALSE, (GLfloat *)g_obj_model_mat);
 
-                glEnableVertexAttribArray(my_gl->vert_member.at("aPosition"));
-                glVertexAttribPointer(my_gl->vert_member.at("aPosition"), 3, GL_FLOAT, GL_FALSE, 0, &obj_info.positions[0]);
+                glEnableVertexAttribArray(obj_shader->vert_member.at("aPosition"));
+                glVertexAttribPointer(obj_shader->vert_member.at("aPosition"), 3, GL_FLOAT, GL_FALSE, 0, &obj_info.positions[0]);
 
                 glLineWidth(3);
 
