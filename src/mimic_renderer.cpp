@@ -79,9 +79,9 @@ float Deg2Rad(float degree)
     return degree * PI / 180;
 }
 
-// Á¶¸í¿¡ »ç¿ëÇÒ normal matrix¸¦ À§ÇØ src_matrix¿¡ ´ëÇÑ inverse_matrix¸¦ »ý¼ºÇÑ´Ù
-// Á¶¸íÀ» À§ÇØ »ç¿ëÇÒ ¶§´Â model matrix¿¡ ´ëÇØ inverse_matrix¸¦ »ý¼ºÇÏ°í, ÀÌ¸¦ normal vector¿Í °öÇÏ¿©
-// ÃÖÁ¾ÀûÀ¸·Î´Â normal_matrix¸¦ »ç¿ëÇÏ°Ô µÈ´Ù
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½? normal matrixï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ src_matrixï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ inverse_matrixï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ñ´ï¿½
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½? ï¿½ï¿½ï¿½ï¿½ model matrixï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ inverse_matrixï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï°ï¿½, ï¿½Ì¸ï¿½ normal vectorï¿½ï¿½ ï¿½ï¿½ï¿½Ï¿ï¿½
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î´ï¿½ normal_matrixï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ï°ï¿½? ï¿½È´ï¿½
 // see more : http://www.lighthouse3d.com/tutorials/glsl-12-tutorial/the-normal-matrix/
 void CreateInverseMatrix(mat4x4 src_matrix, mat4x4 inverse_matrix)
 {
@@ -204,6 +204,7 @@ void DrawBackGround()
 
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, g_bg_buf_idx);
 }
+
 void MimicRender()
 {
     InitRenderContext();
@@ -226,8 +227,8 @@ void MimicRender()
     obj_shader = new GLShader();
     bg_shader = new GLShader();
 
-    bg_shader->LoadShader(GL_VERTEX_SHADER, "../src/gl_shader/texture.vshader");
-    bg_shader->LoadShader(GL_FRAGMENT_SHADER, "../src/gl_shader/texture.fshader");
+    bg_shader->LoadShader(GL_VERTEX_SHADER, "../../src/gl_shader/texture.vshader");
+    bg_shader->LoadShader(GL_FRAGMENT_SHADER, "../../src/gl_shader/texture.fshader");
     bg_shader->LinkShaders();
 
     // bg_shader Vertex Shader Initialize
@@ -240,8 +241,8 @@ void MimicRender()
     // bg_shader Fragment Shader Initialize
     bg_shader->SetGLUniformLocation(GL_FRAGMENT_SHADER, "uTexture0");
 
-    obj_shader->LoadShader(GL_VERTEX_SHADER, "../src/gl_shader/object.vshader");
-    obj_shader->LoadShader(GL_FRAGMENT_SHADER, "../src/gl_shader/object.fshader");
+    obj_shader->LoadShader(GL_VERTEX_SHADER, "../../src/gl_shader/object.vshader");
+    obj_shader->LoadShader(GL_FRAGMENT_SHADER, "../../src/gl_shader/object.fshader");
     obj_shader->LinkShaders();
 
     // obj_shader Vertex Shader Initialize

@@ -3,7 +3,6 @@
 #include <fstream>
 #include <string>
 #include <sstream>
-#include <vector>
 
 #include "gl_manager.h"
 #include "Logger.h"
@@ -14,6 +13,7 @@ enum _ObjDataType {
 	kNormal,
 	kFace
 }typedef ObjDataType;
+
 int CheckError()
 {
 	int err_type = 0;
@@ -231,7 +231,6 @@ int LoadObjectFile(GL3DObj* dest_model, const char* path)
 	}
 	return 0;
 }
-
 GLShader::GLShader()
 {
 	program = glCreateProgram();
@@ -241,10 +240,12 @@ GLShader::GLShader(const char* vertex_src, const char* fragment_src)
 {
 	program = glCreateProgram();
     v_shader = CreateShader(GL_VERTEX_SHADER, vertex_src);
+	//add your vertex shader path
     //v_shader = LoadShader(GL_VERTEX_SHADER, vertex_src);
-	printf("vertex src\n %s",vertex_src);
 	Log("vertex src\n %s",vertex_src);
+
 	f_shader = CreateShader(GL_FRAGMENT_SHADER, fragment_src);
+	//add your fragment shader path
 	//f_shader = LoadShader(GL_FRAGMENT_SHADER, fragment_src);
 	Log("fragment src\n %s",fragment_src);
 
@@ -334,38 +335,35 @@ void GLShader::LinkShaders()
 	glLinkProgram(program);
 	CheckError();
 }
-
-int GLShader::SetGLAttribLocation(GLenum type, std::string attri_name)
+int GLShader::SetGLAttribLocation(GLenum type, const char* attri_name)
 {
-	GLint tmp_loc = glGetAttribLocation(program, attri_name.c_str());
+	GLint tmp_loc = glGetAttribLocation(program, attri_name);
 
-	Log("key [%s] value[%d]",attri_name.c_str(), tmp_loc);
-
+	Log("key [%s] value[%d]",attri_name, tmp_loc);
 	if(type == GL_VERTEX_SHADER)
 	{
-		vert_member.insert(std::pair<std::string , GLint>(attri_name, tmp_loc));
+		vert_member.insert(std::pair<const char*, GLint>(attri_name, tmp_loc));
 	}
 	else if(type == GL_FRAGMENT_SHADER)
 	{
-		frag_member.insert(std::pair<std::string , GLint>(attri_name, tmp_loc));
+		frag_member.insert(std::pair<const char*, GLint>(attri_name, tmp_loc));
 	}
 
 	return 0;
 }
 
-int GLShader::SetGLUniformLocation(GLenum type, std::string uniform_name)
+int GLShader::SetGLUniformLocation(GLenum type, const char* uniform_name)
 {
-	GLint tmp_uniform = glGetUniformLocation(program, uniform_name.c_str());
+	GLint tmp_uniform = glGetUniformLocation(program, uniform_name);
 
-	Log("key [%s] value[%d]", uniform_name.c_str(), tmp_uniform);
-
+	Log("key [%s] value[%d]", uniform_name, tmp_uniform);
 	if(type == GL_VERTEX_SHADER)
 	{
-		vert_member.insert(std::pair<std::string, GLint>(uniform_name, tmp_uniform));
+		vert_member.insert(std::pair<const char*, GLint>(uniform_name, tmp_uniform));
 	}
 	else if(type == GL_FRAGMENT_SHADER)
 	{
-		frag_member.insert(std::pair<std::string, GLint>(uniform_name, tmp_uniform));
+		frag_member.insert(std::pair<const char*, GLint>(uniform_name, tmp_uniform));
 	}
 
 	return 0;

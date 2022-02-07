@@ -1,11 +1,9 @@
 #ifndef __GL_MANAGER_H__
 #define __GL_MANAGER_H__
 // gl header
-
 #include <GL/gl3w.h> // Initialize with gl3wInit()
 #include <vector>
 #include <map>
-#include <string>
 
 static std::map<int, const char*> glErrorMap = {
 	//GL error Check
@@ -52,7 +50,6 @@ typedef struct GL3DObj
 	}
 	
 } GL3DObj;
-
 //general functions
 int CheckError();
 int LoadObjectFile(GL3DObj* dest_model, const char* path);
@@ -65,10 +62,9 @@ class GLShader
 		GLuint v_shader;
 		GLuint f_shader;
 
-		std::map<std::string, GLint> vert_member;
-		std::map<std::string, GLint> frag_member;
+		std::map<const char*, GLint> vert_member;
+		std::map<const char*, GLint> frag_member;
 
-		std::vector<GL3DObj> gl_obj;
 	private:
 
 	public:
@@ -80,8 +76,8 @@ class GLShader
 		void LinkShaders();
 		bool LoadShader(GLenum type, const char *shader_path);
 
-		int SetGLAttribLocation(GLenum type, std::string attri_name);
-		int SetGLUniformLocation(GLenum type, std::string uniform_name);
+		int SetGLAttribLocation(GLenum type, const char* attri_name);
+		int SetGLUniformLocation(GLenum type, const char* uniform_name);
 
 	private:
 		GLuint CreateShader(GLenum type, const char *shader_src);
