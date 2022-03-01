@@ -76,12 +76,12 @@ GLfloat g_bg_buf[] = {
 
 float Deg2Rad(float degree)
 {
-    return degree * PI / 180;
+    return (float)(degree * PI / 180);
 }
 
-// ������ �����? normal matrix�� ���� src_matrix�� ���� inverse_matrix�� �����Ѵ�
-// ������ ���� �����? ���� model matrix�� ���� inverse_matrix�� �����ϰ�, �̸� normal vector�� ���Ͽ�
-// ���������δ� normal_matrix�� ����ϰ�? �ȴ�
+// 조명에 사용할 normal matrix를 위해 src_matrix에 대한 inverse_matrix를 생성한다
+// 조명을 위해 사용할 때는 model matrix에 대해 inverse_matrix를 생성하고, 이를 normal vector와 곱하여
+// 최종적으로는 normal_matrix를 사용하게 된다
 // see more : http://www.lighthouse3d.com/tutorials/glsl-12-tutorial/the-normal-matrix/
 void CreateInverseMatrix(mat4x4 src_matrix, mat4x4 inverse_matrix)
 {
@@ -101,31 +101,16 @@ void TransformScale(mat4x4 src_matrix, float scale_x, float scale_y, float scale
 	}
 }
 
-void RotateWithPos(mat4x4 src_matrix, float angle_x, float angle_y)
+void MoveWithPos(mat4x4 src_matrix, float move_x, float move_y, float move_z)
 {
-	float x_s = sinf(angle_y);
-	float x_c = cosf(angle_y);
+    mat4x4_translate(src_matrix, move_x, move_y, move_z);
+}
 
-	float y_s = sinf(angle_x);
-	float y_c = cosf(angle_x);
-
-	mat4x4 mRotate_X_Mat =
-	{
-		1.f, 0.f, 0.f, 0.f,
-		0.f,   x_c,   x_s, 0.f,
-		0.f,  -x_s,   x_c, 0.f,
-		0.f, 0.f, 0.f, 1.f
-	};
-
-	mat4x4 mRotate_Y_Mat =
-	{
-		y_c, 0.f,  -y_s, 0.f,
-		 0.f, 1.f, 0.f, 0.f,
-		   y_s, 0.f,   y_c, 0.f,
-		 0.f, 0.f, 0.f, 1.f
-	};
-
-	mat4x4_mul(src_matrix, mRotate_X_Mat, mRotate_Y_Mat);
+void RotateWithPos(mat4x4 src_matrix, vec2 angle)
+{
+    
+    mat4x4_rotate_X(src_matrix, src_matrix, angle[0]);
+    mat4x4_rotate_Y(src_matrix, src_matrix, angle[1]);
 }
 
 static void glfw_error_callback(int error, const char* description)
@@ -180,6 +165,38 @@ bool InitRenderContext()
     return true;
 }
 
+void InitGLShader()
+{   
+    obj_shader = new GLShader();
+    bg_shader = new GLShader();
+
+    bg_shader->LoadShader(GL_VERTEX_SHADER, "../../src/gl_shader/texture.vshader");
+    bg_shader->LoadShader(GL_FRAGMENT_SHADER, "../../src/gl_shader/texture.fshader");
+    bg_shader->LinkShaders();
+
+    // bg_shader Vertex Shader Initialize
+    bg_shader->SetGLAttribLocation(GL_VERTEX_SHADER, "aPosition");
+    bg_shader->SetGLAttribLocation(GL_VERTEX_SHADER, "aTexCoord");
+
+    bg_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uGlobalColor");
+    bg_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uProjection");
+
+    // bg_shader Fragment Shader Initialize
+    bg_shader->SetGLUniformLocation(GL_FRAGMENT_SHADER, "uTexture0");
+
+    obj_shader->LoadShader(GL_VERTEX_SHADER, "../../src/gl_shader/object.vshader");
+    obj_shader->LoadShader(GL_FRAGMENT_SHADER, "../../src/gl_shader/object.fshader");
+    obj_shader->LinkShaders();
+
+    // obj_shader Vertex Shader Initialize
+    obj_shader->SetGLAttribLocation(GL_VERTEX_SHADER, "aPosition");
+    
+    obj_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uProjection");
+    obj_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uModel");
+    obj_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uView");
+    obj_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uColor");
+}
+
 void DrawBackGround()
 {
     glUseProgram(bg_shader->program);
@@ -209,66 +226,13 @@ void MimicRender()
 {
     InitRenderContext();
     InitUI();
+    InitGLShader();
 
-    ImVec4 background_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-    ImVec4 obj_color = ImVec4(1.0f, 1.0f, 0.0f, 1.00f);
-    ImVec4 light_color = ImVec4(1.0f, 1.0f, 1.0f, 1.00f);
-
-    static int x = 0, y = 0, frame_num = 0;
-    static float angle = 90, cur_x_pos = 0, prev_x_pos = 0, cur_y_pos = 0, prev_y_pos = 0;
-    static float angle_x = 0.0f, angle_y = 0.0f;
-    static float scale_x = 0.4f, scale_y = 0.4f, scale_z = 0.4f;
-    static float eye_x = 1.0f, eye_y = 1.0f, eye_z = 0.0f;
-    static float center_x = 0.0f, center_y = 0.0f, center_z = 0.0f;
-    static float up_x = 0.0f, up_y = 1.0f, up_z = 0.0f;
-    static float ambient_value = 1.0f;
-    int mouse_state = 0; // 0 release, 1 press
-
-    obj_shader = new GLShader();
-    bg_shader = new GLShader();
-
-    bg_shader->LoadShader(GL_VERTEX_SHADER, "../../src/gl_shader/texture.vshader");
-    bg_shader->LoadShader(GL_FRAGMENT_SHADER, "../../src/gl_shader/texture.fshader");
-    bg_shader->LinkShaders();
-
-    // bg_shader Vertex Shader Initialize
-    bg_shader->SetGLAttribLocation(GL_VERTEX_SHADER, "aPosition");
-    bg_shader->SetGLAttribLocation(GL_VERTEX_SHADER, "aTexCoord");
-
-    bg_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uGlobalColor");
-    bg_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uProjection");
-
-    // bg_shader Fragment Shader Initialize
-    bg_shader->SetGLUniformLocation(GL_FRAGMENT_SHADER, "uTexture0");
-
-    obj_shader->LoadShader(GL_VERTEX_SHADER, "../../src/gl_shader/object.vshader");
-    obj_shader->LoadShader(GL_FRAGMENT_SHADER, "../../src/gl_shader/object.fshader");
-    obj_shader->LinkShaders();
-
-    // obj_shader Vertex Shader Initialize
-    obj_shader->SetGLAttribLocation(GL_VERTEX_SHADER, "aPosition");
-    obj_shader->SetGLAttribLocation(GL_VERTEX_SHADER, "aNormal");
-    obj_shader->SetGLAttribLocation(GL_VERTEX_SHADER, "aTexCoord");
-    
-    obj_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uProjection");
-    obj_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uModel");
-    obj_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uView");
-
-    obj_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uModelTransform");
-    // obj_shader Fragment Shader Initialize
-    obj_shader->SetGLUniformLocation(GL_FRAGMENT_SHADER, "uLightPosition");
-    obj_shader->SetGLUniformLocation(GL_FRAGMENT_SHADER, "uLightColor");
-    obj_shader->SetGLUniformLocation(GL_FRAGMENT_SHADER, "uObjectColor");
-    obj_shader->SetGLUniformLocation(GL_FRAGMENT_SHADER, "uAmbientStrength");
+    static int frame_num = 0;
 
     // Main loop
     while (!glfwWindowShouldClose(window))
     {
-        // Poll and handle events (inputs, window resize, etc.)
-        // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
-        // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application.
-        // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
-        // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
         glfwPollEvents();
 
         // Start the Dear ImGui frame
@@ -278,65 +242,18 @@ void MimicRender()
 
         DrawToolBar();
         DrawMenuBar();
-
-
-        ImGuiIO& io = ImGui::GetIO();
-        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
-        {
-
-            ImGui::Begin("Renderer Settings"); // Create a window called "Hello, world!" and append into it.
-
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-
-            ImGui::PushItemWidth(200.0f);
-            ImGui::SliderFloat("Scale trans X ", &scale_x, 0.0f, 1.0f); ImGui::SameLine();            // Edit 1 float using a slider from 0.0f to 1.0f
-			ImGui::SliderFloat("Scale trans Y ", &scale_y, 0.0f, 1.0f); ImGui::SameLine();             // Edit 1 float using a slider from 0.0f to 1.0f
-			ImGui::SliderFloat("Scale trans Z ", &scale_z, 0.0f, 1.0f);             // Edit 1 float using a slider from 0.0f to 1.0f
-
-            ImGui::SliderFloat("Eye trans X   ", &eye_x, -2.0f, 2.0f); ImGui::SameLine();            // Edit 1 float using a slider from 0.0f to 1.0f
-            ImGui::SliderFloat("Eye trans Y   ", &eye_y, -2.0f, 2.0f); ImGui::SameLine();             // Edit 1 float using a slider from 0.0f to 1.0f
-            ImGui::SliderFloat("Eye trans Z   ", &eye_z, -2.0f, 2.0f);             // Edit 1 float using a slider from 0.0f to 1.0f
-
-            ImGui::SliderFloat("Center trans X", &center_x, -2.0f, 2.0f); ImGui::SameLine();            // Edit 1 float using a slider from 0.0f to 1.0f
-            ImGui::SliderFloat("Center trans Y", &center_y, -2.0f, 2.0f); ImGui::SameLine();             // Edit 1 float using a slider from 0.0f to 1.0f
-            ImGui::SliderFloat("Center trans Z", &center_z, -2.0f, 2.0f);             // Edit 1 float using a slider from 0.0f to 1.0f
-
-            ImGui::SliderFloat("Up Vec trans X", &up_x, -2.0f, 2.0f); ImGui::SameLine();            // Edit 1 float using a slider from 0.0f to 1.0f
-            ImGui::SliderFloat("Up Vec trans Y", &up_y, -2.0f, 2.0f); ImGui::SameLine();             // Edit 1 float using a slider from 0.0f to 1.0f
-            ImGui::SliderFloat("Up Vec trans Z", &up_z, -2.0f, 2.0f);             // Edit 1 float using a slider from 0.0f to 1.0f
-            ImGui::PopItemWidth();
-            ImGui::ColorEdit3("background color", (float*)&background_color); // Edit 3 floats representing a color
-            ImGui::ColorEdit3("  object color  ", (float*)&obj_color); // Edit 3 floats representing a color
-            ImGui::ColorEdit3("   light color  ", (float*)&light_color); // Edit 3 floats representing a color
-            ImGui::SliderFloat(" Ambient value ", &ambient_value, 0.0f, 1.0f);
-
-            for (int i = 0; i < IM_ARRAYSIZE(io.MouseDown); i++)
-            {
-                if (ImGui::IsMouseDown(i))
-                {
-                    mouse_state = 1;
-                }
-            }
-
-            for (int i = 0; i < IM_ARRAYSIZE(io.MouseDown); i++)
-            {
-                if (ImGui::IsMouseReleased(i))
-                {
-                    mouse_state = 0;
-                }
-            }
-
-            std::string mouse_state_str = mouse_state ? "Clicked" : "Released";
-            ImGui::Text("Mouse state %s", mouse_state_str.c_str());
-
-            ImGui::End();
-        }
-
+        DrawExternalSettingView();
+        
+        GlobalMouseEvent();
+        
         // Rendering
         ImGui::Render();
         int display_w, display_h;
+        
         glfwGetFramebufferSize(window, &display_w, &display_h); 
-        glClearColor(background_color.x * background_color.w, background_color.y * background_color.w, background_color.z * background_color.w, background_color.w);
+
+        glClearColor(g_extern_settings.bg_color[0] * g_extern_settings.bg_color[3], g_extern_settings.bg_color[2] * g_extern_settings.bg_color[3], 
+                    g_extern_settings.bg_color[2] * g_extern_settings.bg_color[3], g_extern_settings.bg_color[3]);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         //glEnable(GL_BLEND);
@@ -346,57 +263,17 @@ void MimicRender()
         {
             frame_num++;
 
-            if (frame_num % 33 == 0)
-            {
-                angle++;
-            }
-            
-            if (mouse_state == 1 && g_active_rotate)
-            {
-                cur_x_pos = io.MousePos.x;
-                cur_y_pos = io.MousePos.y;
-
-                if (cur_x_pos != prev_x_pos)
-                {
-                    angle_x += std::fmod((cur_x_pos - prev_x_pos), 360.0f) / 20;
-
-                    if (angle_x > 360.0f || angle_x < -360.0f)
-                    {
-                        angle_x = 0.0f;
-                    }
-                }
-                if (cur_y_pos != prev_y_pos)
-                {
-                    angle_y += std::fmod((cur_y_pos - prev_y_pos), 360.0f) / 20;
-
-                    if (angle_y > 360.0f || angle_y < -360.0f)
-                    {
-                        angle_y = 0.0f;
-                    }
-                }
-            }
-
-			RotateWithPos(g_obj_model_mat, angle_x, angle_y);
-			TransformScale(g_obj_model_mat, scale_x, scale_y, scale_z);
-            //linmath test
-
-            vec3 m_eye = { eye_x ,eye_y, eye_z };
-            vec3 m_center = { center_x ,center_y, center_z };
-            vec3 m_up = { up_x ,up_y, up_z };
+            MoveWithPos(g_obj_model_mat, g_extern_settings.move[0], g_extern_settings.move[1], g_extern_settings.move[2]);
+			RotateWithPos(g_obj_model_mat, g_extern_settings.angle);
+			TransformScale(g_obj_model_mat, g_extern_settings.scale[0], g_extern_settings.scale[1], g_extern_settings.scale[2]);
 
             mat4x4_perspective(g_obj_proj_mat, Deg2Rad(90),(float)display_w/(float)display_h, 0.1f, 100.0f);
-            mat4x4_look_at(g_obj_view_mat, m_eye, m_center, m_up);
-
-            GLfloat m_light_color[3] = { light_color.x , light_color.y , light_color.z };
-            GLfloat m_object_color[3] = { obj_color.x , obj_color.y , obj_color.z };
+            mat4x4_look_at(g_obj_view_mat, g_extern_settings.camera.eye, g_extern_settings.camera.center, g_extern_settings.camera.up);
 
             for( auto obj_info : v_models)
             {
 				glUseProgram(obj_shader->program);
-
-                glUniform1f(obj_shader->frag_member.at("uAmbientStrength"), (GLfloat)ambient_value);
-                glUniform3fv(obj_shader->frag_member.at("uLightColor"), 1, m_light_color);
-                glUniform3fv(obj_shader->frag_member.at("uObjectColor"), 1, m_object_color);
+				glUniform4fv(obj_shader->vert_member.at("uColor"), 1, (GLfloat *)g_extern_settings.obj_color);
 
 				glUniformMatrix4fv(obj_shader->vert_member.at("uProjection"), 1, GL_FALSE, (GLfloat *)g_obj_proj_mat);
 				glUniformMatrix4fv(obj_shader->vert_member.at("uView"), 1, GL_FALSE, (GLfloat *)g_obj_view_mat);
@@ -407,13 +284,10 @@ void MimicRender()
 
                 glLineWidth(3);
 
-                glDrawElements(GL_TRIANGLES, obj_info.v_faces.size(), GL_UNSIGNED_INT, &obj_info.v_faces[0]);
+                glDrawElements(GL_LINES, (GLsizei)obj_info.v_faces.size(), GL_UNSIGNED_INT, &obj_info.v_faces[0]);
             }
-            prev_x_pos = cur_x_pos;
-            prev_y_pos = cur_y_pos;
-
         }
-       // DrawBackGround();
+        //DrawBackGround();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);
     }
@@ -424,6 +298,4 @@ void MimicRender()
 
     glfwDestroyWindow(window);
     glfwTerminate();
-
-
 }

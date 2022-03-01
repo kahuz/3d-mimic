@@ -38,7 +38,7 @@ float MyRound(float src, int depth)
 		mul_value *= 10;
 	}
 
-	convert_src_to_int = src * mul_value;
+	convert_src_to_int = static_cast<int>(src * mul_value);
 
 	for (int i = 0; i <= depth; i++)
 	{
@@ -86,7 +86,7 @@ int LoadObjectsFile(std::vector<GL3DObj> *dest_model, const char* path)
 			{
 				while (getline(line_stream, cur_token, ' '))
 				{
-					float get_value = atof(cur_token.c_str());
+					float get_value = static_cast<float>(atof(cur_token.c_str()));
 
 					res_obj.positions.push_back(get_value);
 				}
@@ -95,7 +95,7 @@ int LoadObjectsFile(std::vector<GL3DObj> *dest_model, const char* path)
 			{
 				while (getline(line_stream, cur_token, ' '))
 				{
-					float get_value = atof(cur_token.c_str());
+					float get_value = static_cast<float>(atof(cur_token.c_str()));
 
 					res_obj.texels.push_back(get_value);
 				}
@@ -104,7 +104,7 @@ int LoadObjectsFile(std::vector<GL3DObj> *dest_model, const char* path)
 			{
 				while (getline(line_stream, cur_token, ' '))
 				{
-					float get_value = atof(cur_token.c_str());
+					float get_value = static_cast<float>(atof(cur_token.c_str()));
 
 					res_obj.normals.push_back(get_value);
 				}
@@ -172,21 +172,21 @@ int LoadObjectFile(GL3DObj* dest_model, const char* path)
 			{
 				while (getline(line_stream, cur_token, ' '))
 				{
-					dest_model->positions.push_back(atof(cur_token.c_str()));
+					dest_model->positions.push_back(static_cast<float>(atof(cur_token.c_str())));
 				}
 			}
 			else if (cur_token == "vt")
 			{
 				while (getline(line_stream, cur_token, ' '))
 				{
-					dest_model->texels.push_back(atof(cur_token.c_str()));
+					dest_model->texels.push_back(static_cast<float>(atof(cur_token.c_str())));
 				}
 			}
 			else if (cur_token == "vn")
 			{
 				while (getline(line_stream, cur_token, ' '))
 				{
-					dest_model->normals.push_back(atof(cur_token.c_str()));
+					dest_model->normals.push_back(static_cast<float>(atof(cur_token.c_str())));
 				}
 			}
 			else if (cur_token == "f")

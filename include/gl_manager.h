@@ -4,6 +4,7 @@
 #include <GL/gl3w.h> // Initialize with gl3wInit()
 #include <vector>
 #include <map>
+#include <string>
 
 static std::map<int, const char*> glErrorMap = {
 	//GL error Check
@@ -62,8 +63,8 @@ class GLShader
 		GLuint v_shader;
 		GLuint f_shader;
 
-		std::map<const char*, GLint> vert_member;
-		std::map<const char*, GLint> frag_member;
+		std::map<std::string, GLint> vert_member;
+		std::map<std::string, GLint> frag_member;
 
 	private:
 
