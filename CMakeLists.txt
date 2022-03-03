@@ -37,7 +37,6 @@ set( HEADER # include header source files
 )
 
 if(WIN32) # if windows
-    set(HEADER ${HEADER} ${CMAKE_CURRENT_SOURCE_DIR}/include/imgui/backends/imgui_impl_win32.cpp)
     if(CMAKE_CL_64) # if 64bit windows
         set(LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/"/lib/x64")
     else() # if 32bit windows
