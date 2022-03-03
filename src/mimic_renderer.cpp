@@ -190,11 +190,16 @@ void InitGLShader()
 
     // obj_shader Vertex Shader Initialize
     obj_shader->SetGLAttribLocation(GL_VERTEX_SHADER, "aPosition");
+    obj_shader->SetGLAttribLocation(GL_VERTEX_SHADER, "aNormal");
     
     obj_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uProjection");
     obj_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uModel");
     obj_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uView");
-    obj_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uColor");
+    
+    obj_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uObjectColor");
+    obj_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uLightColor");
+
+    obj_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uAmbientStrength");
 }
 
 void DrawBackGround()
@@ -245,7 +250,8 @@ void MimicRender()
         DrawExternalSettingView();
         
         GlobalMouseEvent();
-        
+        GlobalKeyboardEvent();
+
         // Rendering
         ImGui::Render();
         int display_w, display_h;
@@ -273,7 +279,10 @@ void MimicRender()
             for( auto obj_info : v_models)
             {
 				glUseProgram(obj_shader->program);
-				glUniform4fv(obj_shader->vert_member.at("uColor"), 1, (GLfloat *)g_extern_settings.obj_color);
+
+				glUniform4fv(obj_shader->vert_member.at("uObjectColor"), 1, (GLfloat *)g_extern_settings.obj_color);
+				glUniform4fv(obj_shader->vert_member.at("uLightColor"), 1, (GLfloat *)g_extern_settings.light.color);
+                glUniform1f(obj_shader->vert_member.at("uAmbientStrength"), g_extern_settings.light.ambient_value);
 
 				glUniformMatrix4fv(obj_shader->vert_member.at("uProjection"), 1, GL_FALSE, (GLfloat *)g_obj_proj_mat);
 				glUniformMatrix4fv(obj_shader->vert_member.at("uView"), 1, GL_FALSE, (GLfloat *)g_obj_view_mat);
@@ -281,10 +290,13 @@ void MimicRender()
 
                 glEnableVertexAttribArray(obj_shader->vert_member.at("aPosition"));
                 glVertexAttribPointer(obj_shader->vert_member.at("aPosition"), 3, GL_FLOAT, GL_FALSE, 0, &obj_info.positions[0]);
+                
+                glEnableVertexAttribArray(obj_shader->vert_member.at("aNormal"));
+                glVertexAttribPointer(obj_shader->vert_member.at("aNormal"), 3, GL_FLOAT, GL_FALSE, 0, &obj_info.normals[0]);
 
                 glLineWidth(3);
 
-                glDrawElements(GL_LINES, (GLsizei)obj_info.v_faces.size(), GL_UNSIGNED_INT, &obj_info.v_faces[0]);
+                glDrawElements(GL_TRIANGLES, (GLsizei)obj_info.v_faces.size(), GL_UNSIGNED_INT, &obj_info.v_faces[0]);
             }
         }
         //DrawBackGround();

@@ -28,7 +28,8 @@ struct _GLCamera{
 };
 
 struct _GLLight{
-    vec4 light_color = {1.0f, 1.0f, 1.0f, 1.0f};
+    vec3 pos = {0.0f, 0.0f, 0.0f};
+    vec4 color = {1.0f, 1.0f, 1.0f, 1.0f};
     float ambient_value = 1.0f;
 };
 
@@ -56,6 +57,7 @@ extern _IMGResourceInfo g_bg_info;
 
 void InitUI();
 void GlobalMouseEvent();
+void GlobalKeyboardEvent();
 void DrawExternalSettingView();
 void DrawToolBar();
 void DrawFileMenuBar();

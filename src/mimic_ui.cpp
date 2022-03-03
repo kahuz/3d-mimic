@@ -66,6 +66,28 @@ GLuint GetTextureId(const void* img_data, int width, int height, int img_channel
     return tex_id;
 }
 
+void OpenFileDialog()
+{
+    nfdchar_t *outPath = NULL;
+    nfdresult_t result = NFD_OpenDialog("obj", NULL, &outPath);
+
+    if (result == NFD_OKAY)
+    {
+        // LoadObjectFile(&g_model, outPath);
+        LoadObjectsFile(&v_models, outPath);
+
+        g_menu_load_model = true;
+        free(outPath);
+    }
+    else if (result == NFD_CANCEL)
+    {
+    }
+    else
+    {
+        Log("Error: %s", NFD_GetError());
+    }
+}
+
 void InitBackGround()
 {
     int imgChannels;
@@ -153,6 +175,20 @@ void GlobalMouseEvent()
     prev_pos = io.MousePos;
 }
 
+void GlobalKeyboardEvent()
+{
+    auto &io = ImGui::GetIO();
+
+    if(io.KeyCtrl)
+    {
+        if(ImGui::IsKeyPressed(ImGuiKey_O))
+        {
+            OpenFileDialog();
+        }
+    }
+
+}
+
 void DrawExternalSettingView()
 {
     ImGui::Begin("Renderer Settings");
@@ -193,10 +229,17 @@ void DrawExternalSettingView()
     ImGui::SliderFloat("Up Vec trans Y", &g_extern_settings.camera.up[1], -10.0f, 10.0f); // Edit float using a slider from -10.0f to 10.0f
     ImGui::SameLine();                                                                 
     ImGui::SliderFloat("Up Vec trans Z", &g_extern_settings.camera.up[2], -10.0f, 10.0f); // Edit float using a slider from -10.0f to 10.0f
+    
+    ImGui::SliderFloat("Light Pos X", &g_extern_settings.light.pos[0], -1.0f, 1.0f); // Edit float using a slider from -1.0f to 1.0f
+    ImGui::SameLine(); // Edit 1 float using a slider from 0.0f to 1.0f
+    ImGui::SliderFloat("Light Pos Y", &g_extern_settings.light.pos[1], -1.0f, 1.0f); // Edit float using a slider from -1.0f to 1.0f
+    ImGui::SameLine();                                                                 
+    ImGui::SliderFloat("Light Pos Z", &g_extern_settings.light.pos[2], -1.0f, 1.0f); // Edit float using a slider from -1.0f to 1.0f
+
     ImGui::PopItemWidth();
     ImGui::ColorEdit3("background color", (float *)&g_extern_settings.bg_color);  // Edit 3 floats representing a color
     ImGui::ColorEdit3("  object color  ", (float *)&g_extern_settings.obj_color);         // Edit 3 floats representing a color
-    ImGui::ColorEdit3("   light color  ", (float *)&g_extern_settings.light.light_color); // Edit 3 floats representing a color
+    ImGui::ColorEdit3("   light color  ", (float *)&g_extern_settings.light.color); // Edit 3 floats representing a color
     ImGui::SliderFloat(" Ambient value ", &g_extern_settings.light.ambient_value, 0.0f, 1.0f);
 
     ImGui::End();
@@ -224,25 +267,7 @@ void DrawFileMenuBar()
 {
     if (ImGui::MenuItem("Open", "Ctrl+O"))
     {
-        nfdchar_t* outPath = NULL;
-        nfdresult_t result = NFD_OpenDialog("obj", NULL, &outPath);
-
-        if (result == NFD_OKAY)
-        {
-            //LoadObjectFile(&g_model, outPath);
-            LoadObjectsFile(&v_models, outPath);
-            
-            g_menu_load_model = true;
-            free(outPath);
-        }
-        else if (result == NFD_CANCEL)
-        {
-        }
-        else
-        {
-            Log("Error: %s", NFD_GetError());
-        }
-
+        OpenFileDialog();
     }
 }
 
