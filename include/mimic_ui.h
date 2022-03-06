@@ -44,7 +44,7 @@ struct _ExternalSettings{
     _GLCamera camera;
     _GLOption option;
 
-    vec3 angle = {4.946f, 3.871f, 4.624f};
+    vec3 angle = {0.0f, 0.0f, 0.0f};
     vec3 scale = {0.2f, 0.2f, 0.2f};
     vec3 move = {0.0f, 0.0f, 0.0f};
 

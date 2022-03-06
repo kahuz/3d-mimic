@@ -1,4 +1,4 @@
-#version 130
+#version 140
 precision mediump float;
 
 uniform vec3 uLightPos;

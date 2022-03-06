@@ -1,4 +1,4 @@
-#version 130
+#version 140
 attribute vec4 aPosition;
 attribute vec3 aNormal;
 
@@ -22,7 +22,7 @@ void main()
 
 	vLightColor = uLightColor;
 	vObjectColor = uObjectColor;
-	vNormal = aNormal;
+	vNormal = mat3(transpose(inverse(uModel))) * aNormal;
 
 	vAmbientStrength = uAmbientStrength;
 

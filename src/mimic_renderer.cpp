@@ -199,17 +199,17 @@ void RotateWithPos(mat4x4 src_matrix, vec3 angle)
     
     if(prev_angle_x != angle[0])
     {
-        mat4x4_rotate_X(src_matrix, src_matrix, angle[0]);
+        mat4x4_rotate_X(src_matrix, src_matrix, Deg2Rad(angle[0]));
     }
 
     if(prev_angle_y != angle[1])
     {
-        mat4x4_rotate_Y(src_matrix, src_matrix, angle[1]);
+        mat4x4_rotate_Y(src_matrix, src_matrix, Deg2Rad(angle[1]));
     }
 
     if(prev_angle_z != angle[2])
     {
-        mat4x4_rotate_Z(src_matrix, src_matrix, angle[2]);
+        mat4x4_rotate_Z(src_matrix, src_matrix, Deg2Rad(angle[2]));
     }
     
     prev_angle_x = angle[0];
@@ -232,7 +232,7 @@ bool InitRenderContext()
         return false;
     }
     // GL 3.0 + GLSL 130
-    const char* glsl_version = "#version 130";
+    const char* glsl_version = "#version 140";
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 
