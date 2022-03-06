@@ -36,7 +36,8 @@ struct _GLCamera{
 struct _GLLight{
     vec3 pos = {0.0f, 0.0f, 0.0f};
     vec4 color = {1.0f, 1.0f, 1.0f, 1.0f};
-    float ambient_value = 1.0f;
+    float ambient_value = 0.1f;
+    float specular_value = 0.5;
 };
 
 struct _ExternalSettings{

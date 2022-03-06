@@ -262,6 +262,7 @@ void DrawExternalSettingView()
     ImGui::ColorEdit3("  object color  ", (float *)&g_extern_settings.obj_color);         // Edit 3 floats representing a color
     ImGui::ColorEdit3("   light color  ", (float *)&g_extern_settings.light.color); // Edit 3 floats representing a color
     ImGui::SliderFloat(" Ambient value ", &g_extern_settings.light.ambient_value, 0.0f, 1.0f);
+    ImGui::SliderFloat(" Specular value ", &g_extern_settings.light.specular_value, 0.0f, 1.0f);
 
 
 

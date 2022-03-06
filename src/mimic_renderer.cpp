@@ -143,9 +143,9 @@ void TransformScale(mat4x4 src_matrix, float scale_x, float scale_y, float scale
 	}
 	else
 	{
-        static float prev_scale_x = 0.2;
-        static float prev_scale_y = 0.2;
-        static float prev_scale_z = 0.2;
+        static float prev_scale_x = 0.2f;
+        static float prev_scale_y = 0.2f;
+        static float prev_scale_z = 0.2f;
         
         if( prev_scale_x != scale_x || prev_scale_y != scale_y || prev_scale_z != scale_z )
         {
@@ -303,8 +303,10 @@ void InitGLShader()
     obj_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uLightColor");
     obj_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uObjectColor");
     obj_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uAmbientStrength");
+    obj_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uSpecularStrength");
 
     obj_shader->SetGLUniformLocation(GL_FRAGMENT_SHADER, "uLightPos");
+    obj_shader->SetGLUniformLocation(GL_FRAGMENT_SHADER, "uViewPos");
 
 };    
 
@@ -406,10 +408,12 @@ void MimicRender()
             {
 
 				glUniform3fv(obj_shader->frag_member.at("uLightPos"), 1, (GLfloat *)g_extern_settings.light.pos);
+				glUniform3fv(obj_shader->frag_member.at("uViewPos"), 1, (GLfloat *)g_extern_settings.camera.eye);
 
 				glUniform4fv(obj_shader->vert_member.at("uObjectColor"), 1, (GLfloat *)g_extern_settings.obj_color);
 				glUniform4fv(obj_shader->vert_member.at("uLightColor"), 1, (GLfloat *)g_extern_settings.light.color);
                 glUniform1f(obj_shader->vert_member.at("uAmbientStrength"), g_extern_settings.light.ambient_value);
+                glUniform1f(obj_shader->vert_member.at("uSpecularStrength"), g_extern_settings.light.specular_value);
 
 				glUniformMatrix4fv(obj_shader->vert_member.at("uProjection"), 1, GL_FALSE, (GLfloat *)g_obj_proj_mat);
 				glUniformMatrix4fv(obj_shader->vert_member.at("uView"), 1, GL_FALSE, (GLfloat *)g_obj_view_mat);
