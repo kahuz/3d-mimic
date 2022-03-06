@@ -356,6 +356,7 @@ int GLShader::SetGLUniformLocation(GLenum type, const char* uniform_name)
 {
 	GLint tmp_uniform = glGetUniformLocation(program, uniform_name);
 
+	CheckError();
 	Log("key [%s] value[%d]", uniform_name, tmp_uniform);
 	if(type == GL_VERTEX_SHADER)
 	{

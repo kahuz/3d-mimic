@@ -24,10 +24,10 @@ enum _EnableToolIdx {
     kMOVE = 0, //"../resource/icons/move_icon.png"
     kROTATE //"../resource/icons/rotate_icon.png"
 }typedef EnableToolIdx;
-vector<string> v_icon_path = { "../resource/icons/move_icon.png", "../resource/icons/rotate_icon.png"};
+vector<string> v_icon_path = { "../../resource/icons/move_icon.png", "../../resource/icons/rotate_icon.png"};
 vector<_IMGResourceInfo> v_icon_info;
 
-string g_bg_path = "../resource/textures/bg_grid.png";
+string g_bg_path = "../../resource/textures/bg_grid.png";
 
 _ExternalSettings g_extern_settings;
 _IMGResourceInfo g_bg_info;
@@ -167,6 +167,21 @@ void GlobalMouseEvent()
         }
     }
 
+    if(io.MouseWheel < 0.0)
+    {
+        if(g_extern_settings.camera.zoom > 3)
+        {
+            g_extern_settings.camera.zoom -= 3;
+        }
+    }
+    else if ( io.MouseWheel > 0.0)
+    {
+        if(g_extern_settings.camera.zoom < 87)
+        {
+            g_extern_settings.camera.zoom += 3;
+        }
+    }
+
     if (mouse_state == 1 && g_active_rotate)
     {
         GetAngleWithPos(g_extern_settings.angle ,io.MousePos, prev_pos);
@@ -196,15 +211,21 @@ void DrawExternalSettingView()
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
     ImGui::PushItemWidth(200.0f);
+    ImGui::Checkbox("GL Depth", &g_extern_settings.option.active_depth);
+    ImGui::SameLine();
+    ImGui::Checkbox("GL Blend", &g_extern_settings.option.active_blend);
+
     ImGui::SliderFloat("Move trans  X ", &g_extern_settings.move[0], -10.0f, 10.0f); // Edit float using a slider from -10.0f to 10.0f
     ImGui::SameLine(); 
     ImGui::SliderFloat("Move trans  Y ", &g_extern_settings.move[1], -10.0f, 10.0f);  // Edit float using a slider from -10.0f to 10.0f
     ImGui::SameLine();                                                           
     ImGui::SliderFloat("Move trans  Z ", &g_extern_settings.move[2], -10.0f, 10.0f); // Edit float using a slider from -10.0f to 10.0f
 
-    ImGui::SliderFloat("Angle trans X ", &g_extern_settings.angle[0], -100.0f, 100.0f); // Edit float using a slider from -10.0f to 10.0f
+    ImGui::SliderFloat("Angle trans X ", &g_extern_settings.angle[0], -10.0f, 10.0f); // Edit float using a slider from -10.0f to 10.0f
     ImGui::SameLine(); 
-    ImGui::SliderFloat("Angle trans Y ", &g_extern_settings.angle[1], -100.0f, 100.0f);  // Edit float using a slider from -10.0f to 10.0f
+    ImGui::SliderFloat("Angle trans Y ", &g_extern_settings.angle[1], -10.0f, 10.0f);  // Edit float using a slider from -10.0f to 10.0f
+    ImGui::SameLine(); 
+    ImGui::SliderFloat("Angle trans Z ", &g_extern_settings.angle[2], -10.0f, 10.0f);  // Edit float using a slider from -10.0f to 10.0f
 
     ImGui::SliderFloat("Scale trans X ", &g_extern_settings.scale[0], 0.0f, 1.0f); // Edit float using a slider from 0.0f to 1.0f
     ImGui::SameLine(); // Edit 1 float using a slider from 0.0f to 1.0f
@@ -212,11 +233,11 @@ void DrawExternalSettingView()
     ImGui::SameLine();                                                            
     ImGui::SliderFloat("Scale trans Z ", &g_extern_settings.scale[2], 0.0f, 1.0f); // Edit float using a slider from 0.0f to 1.0f
 
-    ImGui::SliderFloat("Eye trans X   ", &g_extern_settings.camera.eye[0], -10.0f, 10.0f); // Edit float using a slider from -10.0f to 10.0f
+    ImGui::SliderFloat("Eye trans X   ", &g_extern_settings.camera.eye[0], -100.0f, 100.0f); // Edit float using a slider from -10.0f to 10.0f
     ImGui::SameLine(); // Edit 1 float using a slider from 0.0f to 1.0f
-    ImGui::SliderFloat("Eye trans Y   ", &g_extern_settings.camera.eye[1], -10.0f, 10.0f); // Edit float using a slider from -10.0f to 10.0f
+    ImGui::SliderFloat("Eye trans Y   ", &g_extern_settings.camera.eye[1], -100.0f, 100.0f); // Edit float using a slider from -10.0f to 10.0f
     ImGui::SameLine();                                                                 
-    ImGui::SliderFloat("Eye trans Z   ", &g_extern_settings.camera.eye[2], -10.0f, 10.0f); // Edit float using a slider from -10.0f to 10.0f
+    ImGui::SliderFloat("Eye trans Z   ", &g_extern_settings.camera.eye[2], -100.0f, 100.0f); // Edit float using a slider from -10.0f to 10.0f
 
     ImGui::SliderFloat("Center trans X", &g_extern_settings.camera.center[0], -10.0f, 10.0f); // Edit float using a slider from -10.0f to 10.0f
     ImGui::SameLine(); // Edit 1 float using a slider from 0.0f to 1.0f
@@ -230,17 +251,19 @@ void DrawExternalSettingView()
     ImGui::SameLine();                                                                 
     ImGui::SliderFloat("Up Vec trans Z", &g_extern_settings.camera.up[2], -10.0f, 10.0f); // Edit float using a slider from -10.0f to 10.0f
     
-    ImGui::SliderFloat("Light Pos X", &g_extern_settings.light.pos[0], -1.0f, 1.0f); // Edit float using a slider from -1.0f to 1.0f
+    ImGui::SliderFloat("Light Pos X", &g_extern_settings.light.pos[0], -1000.0f, 1000.0f); // Edit float using a slider from -1.0f to 1.0f
     ImGui::SameLine(); // Edit 1 float using a slider from 0.0f to 1.0f
-    ImGui::SliderFloat("Light Pos Y", &g_extern_settings.light.pos[1], -1.0f, 1.0f); // Edit float using a slider from -1.0f to 1.0f
+    ImGui::SliderFloat("Light Pos Y", &g_extern_settings.light.pos[1], -1000.0f, 1000.0f); // Edit float using a slider from -1.0f to 1.0f
     ImGui::SameLine();                                                                 
-    ImGui::SliderFloat("Light Pos Z", &g_extern_settings.light.pos[2], -1.0f, 1.0f); // Edit float using a slider from -1.0f to 1.0f
+    ImGui::SliderFloat("Light Pos Z", &g_extern_settings.light.pos[2], -1000.0f, 1000.0f); // Edit float using a slider from -1.0f to 1.0f
 
     ImGui::PopItemWidth();
     ImGui::ColorEdit3("background color", (float *)&g_extern_settings.bg_color);  // Edit 3 floats representing a color
     ImGui::ColorEdit3("  object color  ", (float *)&g_extern_settings.obj_color);         // Edit 3 floats representing a color
     ImGui::ColorEdit3("   light color  ", (float *)&g_extern_settings.light.color); // Edit 3 floats representing a color
     ImGui::SliderFloat(" Ambient value ", &g_extern_settings.light.ambient_value, 0.0f, 1.0f);
+
+
 
     ImGui::End();
 }

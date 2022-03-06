@@ -1,8 +1,8 @@
-precision lowp float;
-uniform lowp vec4 uGlobalColor;
-varying lowp vec4 vColor;
+#version 130
+
+varying vec4 vLightColor;
 
 void main()
 {
-	gl_FragColor = vColor * uGlobalColor;
+	gl_FragColor = vLightColor;
 }

@@ -21,8 +21,14 @@ extern std::vector<GL3DObj> v_models;
 #define UI_TOOLBAR_ICON_W 24
 #define UI_TOOLBAR_ICON_H 24
 
+struct _GLOption{
+    bool active_depth = false;
+    bool active_blend = false;
+};
+
 struct _GLCamera{
-    vec3 eye = {2.0f, 1.0f, 0.0f};
+    float zoom = 45.0f;
+    vec3 eye = {2.0f, 15.0f, 0.0f};
     vec3 center = {0.0f, 0.0f, 0.0f};
     vec3 up = {0.0f, 1.0f, 0.0f};
 };
@@ -36,8 +42,10 @@ struct _GLLight{
 struct _ExternalSettings{
     _GLLight light;
     _GLCamera camera;
-    vec2 angle = {0.0f, 0.0f};
-    vec3 scale = {0.4f, 0.4f, 0.4f};
+    _GLOption option;
+
+    vec3 angle = {4.946f, 3.871f, 4.624f};
+    vec3 scale = {0.2f, 0.2f, 0.2f};
     vec3 move = {0.0f, 0.0f, 0.0f};
 
     vec4 bg_color = {0.45f , 0.55f, 0.60f, 1.0f};

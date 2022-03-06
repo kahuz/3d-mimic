@@ -1,23 +1,28 @@
 #version 130
 attribute vec4 aPosition;
-attribute vec4 aNormal; // added normal vector for light
+attribute vec3 aNormal;
 
 uniform mat4 uProjection;
-uniform mat4 uModel;
 uniform mat4 uView;
+uniform mat4 uModel;
 
 uniform vec4 uLightColor;
 uniform vec4 uObjectColor;
+uniform float uAmbientStrength;
+
+varying vec3 vObjFragPos;
+varying vec3 vNormal;
 varying vec4 vLightColor;
 varying vec4 vObjectColor;
-
-uniform float uAmbientStrength;
 varying float vAmbientStrength;
 
 void main()
 {
-	vLightColor = uObjectColor;
-	vObjectColor = uLightColor;
+	vObjFragPos = vec3(uModel * aPosition);
+
+	vLightColor = uLightColor;
+	vObjectColor = uObjectColor;
+	vNormal = aNormal;
 
 	vAmbientStrength = uAmbientStrength;
 

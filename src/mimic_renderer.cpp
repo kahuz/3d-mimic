@@ -11,6 +11,51 @@ static GLFWwindow *window = NULL;
 GLShader* obj_shader;
 GLShader* bg_shader;
 GLShader* light_shader;
+GLuint light_cube_vbo, light_cube_vao;
+
+float light_vertices[] = {
+    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+     0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+    -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+
+    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+
+    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+
+     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+
+    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+
+    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+     0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
+};
 
 mat4x4 g_obj_proj_mat =
 {
@@ -35,6 +80,7 @@ mat4x4 g_obj_view_mat =
    0.0f, 0.0f, 0.4f, 0.0f,
    0.0f, 0.0f, 0.0f, 1.0f
 };
+
 mat4x4 g_light_proj_mat =
 {
     1.0f, 0.0f, 0.0f, 0.0f,
@@ -45,10 +91,10 @@ mat4x4 g_light_proj_mat =
 
 mat4x4 g_light_model_mat =
 {
-    1.0f, 0.0f, 0.0f, 0.0f,
-    0.0f, 1.0f, 0.0f, 0.0f,
-    0.0f, 0.0f, 1.0f, 0.0f,
-    0.0f, 0.0f, 0.0f, 1.0f
+	1.0f, 0.0f, 0.0f, 0.0f,
+	0.0f, 1.0f, 0.0f, 0.0f,
+	0.0f, 0.0f, 1.0f, 0.0f,
+	0.0f, 0.0f, 0.0f, 1.0f
 };
 
 mat4x4 g_light_view_mat =
@@ -97,20 +143,78 @@ void TransformScale(mat4x4 src_matrix, float scale_x, float scale_y, float scale
 	}
 	else
 	{
-        mat4x4_scale_aniso(src_matrix, src_matrix, scale_x, scale_y, scale_z);
-	}
+        static float prev_scale_x = 0.2;
+        static float prev_scale_y = 0.2;
+        static float prev_scale_z = 0.2;
+        
+        if( prev_scale_x != scale_x || prev_scale_y != scale_y || prev_scale_z != scale_z )
+        {
+            mat4x4_scale_aniso(src_matrix, src_matrix, scale_x, scale_y, scale_z);
+	    }
+        
+        prev_scale_x = scale_x;
+        prev_scale_y = scale_y;
+        prev_scale_z = scale_z;
+    }
 }
 
+void TurnAroundObject(mat4x4 src_matrix)
+{
+    float min_max_value = 5;
+    static int angle = -90;
+
+    if(angle > 90)
+    {
+        angle = -90;
+    }
+    
+    float x = min_max_value * sin(angle * PI / 180);
+    float z = min_max_value * sin((angle+90) * PI / 180);
+    
+    mat4x4_translate(src_matrix, x, 0.0f, z);
+
+    angle++;
+}
 void MoveWithPos(mat4x4 src_matrix, float move_x, float move_y, float move_z)
 {
-    mat4x4_translate(src_matrix, move_x, move_y, move_z);
+    static float prev_move_x = 0.0f;
+    static float prev_move_y = 0.0f;
+    static float prev_move_z = 0.0f;
+
+    if( prev_move_x != move_x || prev_move_y != move_y || prev_move_z != move_z )
+    {
+        mat4x4_translate(src_matrix, move_x, move_y, move_z);
+    }
+    
+    prev_move_x = move_x;
+    prev_move_y = move_y;
+    prev_move_z = move_z;
 }
 
-void RotateWithPos(mat4x4 src_matrix, vec2 angle)
+void RotateWithPos(mat4x4 src_matrix, vec3 angle)
 {
+    static float prev_angle_x = 0.0f;
+    static float prev_angle_y = 0.0f;
+    static float prev_angle_z = 0.0f;
     
-    mat4x4_rotate_X(src_matrix, src_matrix, angle[0]);
-    mat4x4_rotate_Y(src_matrix, src_matrix, angle[1]);
+    if(prev_angle_x != angle[0])
+    {
+        mat4x4_rotate_X(src_matrix, src_matrix, angle[0]);
+    }
+
+    if(prev_angle_y != angle[1])
+    {
+        mat4x4_rotate_Y(src_matrix, src_matrix, angle[1]);
+    }
+
+    if(prev_angle_z != angle[2])
+    {
+        mat4x4_rotate_Z(src_matrix, src_matrix, angle[2]);
+    }
+    
+    prev_angle_x = angle[0];
+    prev_angle_y = angle[1];
+    prev_angle_z = angle[2];
 }
 
 static void glfw_error_callback(int error, const char* description)
@@ -170,8 +274,8 @@ void InitGLShader()
     obj_shader = new GLShader();
     bg_shader = new GLShader();
 
-    bg_shader->LoadShader(GL_VERTEX_SHADER, "../../src/gl_shader/texture.vshader");
-    bg_shader->LoadShader(GL_FRAGMENT_SHADER, "../../src/gl_shader/texture.fshader");
+    bg_shader->LoadShader(GL_VERTEX_SHADER, "D:\\github\\3d-mimic\\src\\gl_shader\\texture.vshader");
+    bg_shader->LoadShader(GL_FRAGMENT_SHADER, "D:\\github\\3d-mimic\\src\\gl_shader\\texture.fshader");
     bg_shader->LinkShaders();
 
     // bg_shader Vertex Shader Initialize
@@ -184,8 +288,8 @@ void InitGLShader()
     // bg_shader Fragment Shader Initialize
     bg_shader->SetGLUniformLocation(GL_FRAGMENT_SHADER, "uTexture0");
 
-    obj_shader->LoadShader(GL_VERTEX_SHADER, "../../src/gl_shader/object.vshader");
-    obj_shader->LoadShader(GL_FRAGMENT_SHADER, "../../src/gl_shader/object.fshader");
+    obj_shader->LoadShader(GL_VERTEX_SHADER, "D:\\github\\3d-mimic\\src\\gl_shader\\object.vshader");
+    obj_shader->LoadShader(GL_FRAGMENT_SHADER, "D:\\github\\3d-mimic\\src\\gl_shader\\object.fshader");
     obj_shader->LinkShaders();
 
     // obj_shader Vertex Shader Initialize
@@ -196,11 +300,13 @@ void InitGLShader()
     obj_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uModel");
     obj_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uView");
     
-    obj_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uObjectColor");
     obj_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uLightColor");
-
+    obj_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uObjectColor");
     obj_shader->SetGLUniformLocation(GL_VERTEX_SHADER, "uAmbientStrength");
-}
+
+    obj_shader->SetGLUniformLocation(GL_FRAGMENT_SHADER, "uLightPos");
+
+};    
 
 void DrawBackGround()
 {
@@ -262,23 +368,44 @@ void MimicRender()
                     g_extern_settings.bg_color[2] * g_extern_settings.bg_color[3], g_extern_settings.bg_color[3]);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        //glEnable(GL_BLEND);
-        //glBlendFunc(GL_ONE, GL_ONE);
         
+        if(g_extern_settings.option.active_depth)
+        {
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_LESS);
+        }
+        else
+        {
+            glDisable(GL_DEPTH_TEST);
+        }
+        
+        if(g_extern_settings.option.active_blend)
+        {
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_ONE, GL_ONE);
+        }
+        else
+        {
+            glDisable(GL_BLEND);
+        }
+
         if (g_menu_load_model)
         {
             frame_num++;
 
-            MoveWithPos(g_obj_model_mat, g_extern_settings.move[0], g_extern_settings.move[1], g_extern_settings.move[2]);
-			RotateWithPos(g_obj_model_mat, g_extern_settings.angle);
-			TransformScale(g_obj_model_mat, g_extern_settings.scale[0], g_extern_settings.scale[1], g_extern_settings.scale[2]);
+            MoveWithPos(g_obj_model_mat, g_extern_settings.move[0], g_extern_settings.move[1],g_extern_settings.move[2]);
+            RotateWithPos(g_obj_model_mat, g_extern_settings.angle);
+            TransformScale(g_obj_model_mat, g_extern_settings.scale[0], g_extern_settings.scale[1], g_extern_settings.scale[2]);
 
-            mat4x4_perspective(g_obj_proj_mat, Deg2Rad(90),(float)display_w/(float)display_h, 0.1f, 100.0f);
+            mat4x4_perspective(g_obj_proj_mat, Deg2Rad(g_extern_settings.camera.zoom), (float)display_w / (float)display_h, 0.1f, 1000.0f);
             mat4x4_look_at(g_obj_view_mat, g_extern_settings.camera.eye, g_extern_settings.camera.center, g_extern_settings.camera.up);
-
+            vec3 tmp_light_pos = {10.2f, 10.0f, 10.0f};
+            // My Object
+			glUseProgram(obj_shader->program);
             for( auto obj_info : v_models)
             {
-				glUseProgram(obj_shader->program);
+
+				glUniform3fv(obj_shader->frag_member.at("uLightPos"), 1, (GLfloat *)g_extern_settings.light.pos);
 
 				glUniform4fv(obj_shader->vert_member.at("uObjectColor"), 1, (GLfloat *)g_extern_settings.obj_color);
 				glUniform4fv(obj_shader->vert_member.at("uLightColor"), 1, (GLfloat *)g_extern_settings.light.color);
@@ -289,14 +416,13 @@ void MimicRender()
 				glUniformMatrix4fv(obj_shader->vert_member.at("uModel"), 1, GL_FALSE, (GLfloat *)g_obj_model_mat);
 
                 glEnableVertexAttribArray(obj_shader->vert_member.at("aPosition"));
-                glVertexAttribPointer(obj_shader->vert_member.at("aPosition"), 3, GL_FLOAT, GL_FALSE, 0, &obj_info.positions[0]);
-                
                 glEnableVertexAttribArray(obj_shader->vert_member.at("aNormal"));
+
+                glVertexAttribPointer(obj_shader->vert_member.at("aPosition"), 3, GL_FLOAT, GL_FALSE, 0, &obj_info.positions[0]);
                 glVertexAttribPointer(obj_shader->vert_member.at("aNormal"), 3, GL_FLOAT, GL_FALSE, 0, &obj_info.normals[0]);
-
-                glLineWidth(3);
-
+ 
                 glDrawElements(GL_TRIANGLES, (GLsizei)obj_info.v_faces.size(), GL_UNSIGNED_INT, &obj_info.v_faces[0]);
+
             }
         }
         //DrawBackGround();
